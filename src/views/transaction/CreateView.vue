@@ -4,26 +4,71 @@ import InputLabel from '@/components/base/InputLabel.vue'
 import DateInput from '@/components/base/DateInput.vue'
 import TextInput from '@/components/base/TextInput.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
-import { reactive, ref, type Ref } from 'vue'
+import Multiselect from 'vue-multiselect'
+import { onMounted, reactive, ref, type Ref } from 'vue'
+import type { AxiosError, AxiosResponse } from 'axios'
+import api from '@/plugin/api'
 
 interface Form {
-  no: string
+  no_transaction: string
   date: Date
   costumer: string
-  code: string
+  code_costumer: string
   name: string
   phone_number: string
 }
+interface Fetch {
+  message: string
+  data: string | Costumer[]
+}
+interface Costumer {
+  id: number
+  kode: string
+  nama: string
+  telp: string
+  created_at: Date
+  updated_at: Date
+}
 
+const isLoadingCostumer: Ref<boolean> = ref(false)
+const costumers: Ref<Costumer[]> = ref([])
 const isLoading: Ref<boolean> = ref(false)
 const form: Form = reactive({
-  no: '',
+  no_transaction: '',
   date: new Date(),
   costumer: '',
-  code: '',
+  code_costumer: '',
   name: '',
   phone_number: '',
 })
+
+onMounted(async () => {
+  try {
+    isLoading.value = true
+    const result: AxiosResponse<Fetch> = await api.get('transaction/code')
+    form.no_transaction = result.data.data as string
+  } catch (error) {
+    const err = error as AxiosError
+    console.log(err)
+  } finally {
+    isLoading.value = false
+  }
+
+  try {
+    isLoadingCostumer.value = true
+    const result: AxiosResponse<Fetch> = await api.get('costumer')
+    costumers.value = result.data.data as Costumer[]
+  } catch (error) {
+    const err = error as AxiosError
+    console.log(err)
+  } finally {
+    isLoadingCostumer.value = false
+  }
+})
+
+const nameWithLang = ({ nama, kode }: { nama: string; kode: string }) => {
+  return `${nama} - ${kode}`
+}
 
 const send = () => {
   console.log(form)
@@ -52,7 +97,12 @@ const send = () => {
               <div class="space-y-4">
                 <div>
                   <InputLabel>no</InputLabel>
-                  <TextInput type="text" class="mt-1 block w-full" v-model="form.no" />
+                  <TextInput
+                    type="text"
+                    :disabled="true"
+                    class="mt-1 block w-full"
+                    v-model="form.no_transaction"
+                  />
                 </div>
                 <div>
                   <InputLabel>Tanggal</InputLabel>
@@ -70,7 +120,21 @@ const send = () => {
               <div class="space-y-4">
                 <div>
                   <InputLabel>kode</InputLabel>
-                  <TextInput type="text" class="mt-1 block w-full" v-model="form.no" />
+                  <Multiselect
+                    :close-on-select="true"
+                    :clear-on-select="true"
+                    :disabled="isLoadingCostumer"
+                    class="block mt-1 w-full"
+                    v-model="form.costumer"
+                    tag-placeholder="Add this as new tag"
+                    placeholder="Search or add a tag"
+                    label="nama"
+                    track-by="id"
+                    :custom-label="nameWithLang"
+                    :options="costumers"
+                    :multiple="false"
+                    :taggable="false"
+                  ></Multiselect>
                 </div>
                 <div>
                   <InputLabel>nama</InputLabel>
