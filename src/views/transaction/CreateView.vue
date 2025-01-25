@@ -6,7 +6,7 @@ import TextInput from '@/components/base/TextInput.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import DangerButton from '@/components/base/DangerButton.vue'
 import Multiselect from 'vue-multiselect'
-import { onMounted, reactive, ref, type Ref } from 'vue'
+import { computed, onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
 import { NumberUtil } from '@/utils/NumberUtil'
@@ -14,14 +14,14 @@ import { NumberUtil } from '@/utils/NumberUtil'
 interface Form {
   no_transaction: string
   date: Date
-  costumer: Costumer | string | null
+  customer: Customer | string | null
   name: string
   phone_number: string
   items: Item | null
 }
 interface Fetch {
   message: string
-  data: string | Costumer[] | Item[]
+  data: string | Customer[] | Item[]
 }
 interface Item {
   id: number
@@ -31,7 +31,7 @@ interface Item {
   created_at: Date
   updated_at: Date
 }
-interface Costumer {
+interface Customer {
   id: number
   kode: string
   nama: string
@@ -41,11 +41,11 @@ interface Costumer {
 }
 
 const items: Ref<Item[]> = ref([])
-const textButtonIsNewCostumer: Ref<string> = ref('buat costumer baru')
-const isNewCostumer: Ref<boolean> = ref(false)
-const isLoadingCostumer: Ref<boolean> = ref(false)
+const textButtonIsNewCustomer: Ref<string> = ref('buat costumer baru')
+const isNewCustomer: Ref<boolean> = ref(false)
+const isLoadingCustomer: Ref<boolean> = ref(false)
 const isLoadingItem: Ref<boolean> = ref(false)
-const costumers: Ref<Costumer[]> = ref([])
+const customers: Ref<Customer[]> = ref([])
 const isLoading: Ref<boolean> = ref(false)
 const selectedItems: Ref<Item[]> = ref([])
 const discountTotalPrice: Ref<string> = ref('')
@@ -54,13 +54,13 @@ const subTotalPrice: Ref<number> = ref(0)
 const totalPrice: Ref<number> = ref(0)
 const batchDiscountPrice: Ref<number[]> = ref([])
 const batchTotalPriceItem: Ref<number[]> = ref([])
-const batchItemQuantities: Ref<number[]> = ref([])
-const batchItemDiscount: Ref<number[]> = ref([])
+const batchItemQuantities: Ref<string[]> = ref([])
+const batchItemDiscount: Ref<string[]> = ref([])
 const batchPriceAfterDiscount: Ref<number[]> = ref([])
 const form: Form = reactive({
   no_transaction: '',
   date: new Date(),
-  costumer: '',
+  customer: '',
   name: '',
   phone_number: '',
   items: null,
@@ -79,14 +79,14 @@ onMounted(async () => {
   }
 
   try {
-    isLoadingCostumer.value = true
-    const result: AxiosResponse<Fetch> = await api.get('costumer')
-    costumers.value = result.data.data as Costumer[]
+    isLoadingCustomer.value = true
+    const result: AxiosResponse<Fetch> = await api.get('customer')
+    customers.value = result.data.data as Customer[]
   } catch (error) {
     const err = error as AxiosError
     console.log(err)
   } finally {
-    isLoadingCostumer.value = false
+    isLoadingCustomer.value = false
   }
 
   try {
@@ -102,7 +102,7 @@ onMounted(async () => {
   }
 })
 
-const nameWithLang = (costumer: Costumer | null) => {
+const nameWithLang = (costumer: Customer | null) => {
   if (!costumer || !costumer.nama || !costumer.kode) {
     return ''
   }
@@ -110,24 +110,24 @@ const nameWithLang = (costumer: Costumer | null) => {
 }
 
 const toogleIsNewCostumer = (): void => {
-  isNewCostumer.value = !isNewCostumer.value
+  isNewCustomer.value = !isNewCustomer.value
 
-  if (isNewCostumer.value) {
-    textButtonIsNewCostumer.value = 'sudah ada costumer'
-    form.costumer = ''
+  if (isNewCustomer.value) {
+    textButtonIsNewCustomer.value = 'sudah ada costumer'
+    form.customer = ''
   } else {
-    textButtonIsNewCostumer.value = 'buat costumer baru'
-    form.costumer = null
+    textButtonIsNewCustomer.value = 'buat costumer baru'
+    form.customer = null
   }
 
   form.name = ''
   form.phone_number = ''
 }
 
-const setFormTelpAndName = (costumer: Costumer): void => {
-  console.log(costumer)
-  form.phone_number = costumer.telp
-  form.name = costumer.nama
+const setFormTelpAndName = (customer: Customer): void => {
+  console.log(customer)
+  form.phone_number = customer.telp
+  form.name = customer.nama
 }
 
 const pushSelectedItems = () => {
@@ -155,7 +155,7 @@ const destroySelectedItemByItemId = (itemId: number) => {
 const calculateDiscountPrice = (index: number): number => {
   const price = selectedItems.value[index].harga
   const discount = batchItemDiscount.value[index]
-  const discountPrice = discount ? price * (discount / 100) : 0
+  const discountPrice = discount ? price * (parseInt(discount as string) / 100) : 0
 
   if (discountPrice !== 0) {
     batchDiscountPrice.value[index] = discountPrice
@@ -181,7 +181,7 @@ const calculatePriceAfterDiscount = (index: number, price: number): number => {
 const calculateTotalPriceItem = (index: number, price: number): number => {
   const quantity = batchItemQuantities.value[index]
   const discountPrice = calculatePriceAfterDiscount(index, price)
-  const totalPriceItem = quantity ? quantity * discountPrice : 0
+  const totalPriceItem = quantity ? parseInt(quantity as string) * discountPrice : 0
 
   if (totalPriceItem !== 0) {
     batchTotalPriceItem.value[index] = totalPriceItem
@@ -199,13 +199,28 @@ const calculateSubTotal = (): number => {
   return subTotalPrice.value
 }
 
+const customerCode = computed(() => {
+  if (typeof form.customer === 'object' && form.customer !== null) {
+    return (form.customer as Customer).kode
+  }
+  return form.customer
+})
+
 const calculateTotalPrice = (discount: string, shippingCost: string): number => {
   totalPrice.value =
     subTotalPrice.value - parseInt(discount as string) + parseInt(shippingCost as string)
   return totalPrice.value ? totalPrice.value : 0
 }
 
-const send = () => {
+const parseBatchItemQuantitiesToInt = computed(() => {
+  return batchItemQuantities.value.map((quantity) => parseInt(quantity as string))
+})
+
+const parseBatchItemDiscountStringToInt = computed(() => {
+  return batchItemDiscount.value.map((itemDiscount) => parseInt(itemDiscount as string))
+})
+
+const send = async () => {
   console.log(form)
   console.log(batchItemQuantities.value)
   console.log(batchItemDiscount.value)
@@ -216,6 +231,32 @@ const send = () => {
   console.log(shippingCost.value)
   console.log(subTotalPrice.value)
   console.log(totalPrice.value)
+
+  try {
+    isLoading.value = true
+    const result = await api.post('transaction', {
+      no_transaction: form.no_transaction,
+      date: form.date,
+      costumer_code: customerCode.value,
+      subtotal: subTotalPrice.value,
+      discount: parseInt(discountTotalPrice.value),
+      shipping_cost: parseInt(shippingCost.value),
+      total_price: totalPrice.value,
+      qty: parseBatchItemQuantitiesToInt.value,
+      discount_pct: parseBatchItemDiscountStringToInt.value,
+      discount_nominal: batchDiscountPrice.value,
+      discount_price: batchPriceAfterDiscount.value,
+      total: batchTotalPriceItem.value,
+      name: form.name,
+      phone_number: form.phone_number,
+    })
+    console.log(result)
+  } catch (error) {
+    const err = error as AxiosError
+    console.log(err)
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 <template>
@@ -267,23 +308,23 @@ const send = () => {
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-1">
                     <div>
                       <Multiselect
-                        v-if="!isNewCostumer"
+                        v-if="!isNewCustomer"
                         :close-on-select="true"
                         :clear-on-select="true"
-                        :disabled="isLoadingCostumer"
+                        :disabled="isLoadingCustomer"
                         class="mt-1"
-                        v-model="form.costumer"
+                        v-model="form.customer"
                         tag-placeholder="Add this as new tag"
                         placeholder="Search or add a tag"
                         @select="setFormTelpAndName"
                         label="nama"
                         track-by="id"
                         :custom-label="nameWithLang"
-                        :options="costumers"
+                        :options="customers"
                         :multiple="false"
                         :taggable="false"
                       ></Multiselect>
-                      <TextInput v-else class="mt-1" v-model="form.costumer" />
+                      <TextInput v-else class="mt-1" v-model="form.customer" />
                     </div>
                     <div>
                       <p class="text-center">atau</p>
@@ -291,7 +332,7 @@ const send = () => {
                     <div>
                       <PrimaryButton class="w-full" @click="toogleIsNewCostumer" type="button"
                         ><span class="text-center">
-                          {{ textButtonIsNewCostumer }}
+                          {{ textButtonIsNewCustomer }}
                         </span></PrimaryButton
                       >
                     </div>
@@ -300,7 +341,7 @@ const send = () => {
                 <div>
                   <InputLabel>nama</InputLabel>
                   <TextInput
-                    :disabled="!isNewCostumer"
+                    :disabled="!isNewCustomer"
                     class="mt-1 block w-full"
                     v-model="form.name"
                   />
@@ -308,7 +349,7 @@ const send = () => {
                 <div>
                   <InputLabel>Telp</InputLabel>
                   <TextInput
-                    :disabled="!isNewCostumer"
+                    :disabled="!isNewCustomer"
                     class="mt-1 block w-full"
                     v-model="form.phone_number"
                   />
