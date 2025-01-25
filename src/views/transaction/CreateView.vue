@@ -12,8 +12,7 @@ import api from '@/plugin/api'
 interface Form {
   no_transaction: string
   date: Date
-  costumer: string
-  code_costumer: string
+  costumer: Costumer | string | null
   name: string
   phone_number: string
 }
@@ -30,6 +29,8 @@ interface Costumer {
   updated_at: Date
 }
 
+const textButtonIsNewCostumer: Ref<string> = ref('buat costumer baru')
+const isNewCostumer: Ref<boolean> = ref(false)
 const isLoadingCostumer: Ref<boolean> = ref(false)
 const costumers: Ref<Costumer[]> = ref([])
 const isLoading: Ref<boolean> = ref(false)
@@ -37,7 +38,6 @@ const form: Form = reactive({
   no_transaction: '',
   date: new Date(),
   costumer: '',
-  code_costumer: '',
   name: '',
   phone_number: '',
 })
@@ -66,8 +66,32 @@ onMounted(async () => {
   }
 })
 
-const nameWithLang = ({ nama, kode }: { nama: string; kode: string }) => {
-  return `${nama} - ${kode}`
+const nameWithLang = (costumer: Costumer | null) => {
+  if (!costumer || !costumer.nama || !costumer.kode) {
+    return ''
+  }
+  return `${costumer.nama} - ${costumer.kode}`
+}
+
+const toogleIsNewCostumer = (): void => {
+  isNewCostumer.value = !isNewCostumer.value
+
+  if (isNewCostumer.value) {
+    textButtonIsNewCostumer.value = 'sudah ada costumer'
+    form.costumer = ''
+  } else {
+    textButtonIsNewCostumer.value = 'buat costumer baru'
+    form.costumer = null
+  }
+
+  form.name = ''
+  form.phone_number = ''
+}
+
+const setFormTelpAndName = (costumer: Costumer): void => {
+  console.log(costumer)
+  form.phone_number = costumer.telp
+  form.name = costumer.nama
 }
 
 const send = () => {
@@ -112,7 +136,7 @@ const send = () => {
             </div>
             <div class="space-y-3">
               <div>
-                <h1 class="font-semibold">Costumer</h1>
+                <h1 class="font-bold">Costumer</h1>
               </div>
               <div>
                 <hr />
@@ -120,30 +144,49 @@ const send = () => {
               <div class="space-y-4">
                 <div>
                   <InputLabel>kode</InputLabel>
-                  <Multiselect
-                    :close-on-select="true"
-                    :clear-on-select="true"
-                    :disabled="isLoadingCostumer"
-                    class="block mt-1 w-full"
-                    v-model="form.costumer"
-                    tag-placeholder="Add this as new tag"
-                    placeholder="Search or add a tag"
-                    label="nama"
-                    track-by="id"
-                    :custom-label="nameWithLang"
-                    :options="costumers"
-                    :multiple="false"
-                    :taggable="false"
-                  ></Multiselect>
+                  <div class="flex space-x-3">
+                    <div class="block w-full">
+                      <Multiselect
+                        v-if="!isNewCostumer"
+                        :close-on-select="true"
+                        :clear-on-select="true"
+                        :disabled="isLoadingCostumer"
+                        class="mt-1 w-full"
+                        v-model="form.costumer"
+                        tag-placeholder="Add this as new tag"
+                        placeholder="Search or add a tag"
+                        @select="setFormTelpAndName"
+                        label="nama"
+                        track-by="id"
+                        :custom-label="nameWithLang"
+                        :options="costumers"
+                        :multiple="false"
+                        :taggable="false"
+                      ></Multiselect>
+                      <TextInput v-else class="mt-1 w-full" v-model="form.costumer" />
+                    </div>
+                    <div class="my-2">
+                      <p>atau</p>
+                    </div>
+                    <div>
+                      <PrimaryButton @click="toogleIsNewCostumer" type="button">{{
+                        textButtonIsNewCostumer
+                      }}</PrimaryButton>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <InputLabel>nama</InputLabel>
-                  <TextInput :disabled="true" class="mt-1 block w-full" v-model="form.name" />
+                  <TextInput
+                    :disabled="!isNewCostumer"
+                    class="mt-1 block w-full"
+                    v-model="form.name"
+                  />
                 </div>
                 <div>
                   <InputLabel>Telp</InputLabel>
                   <TextInput
-                    :disabled="true"
+                    :disabled="!isNewCostumer"
                     class="mt-1 block w-full"
                     v-model="form.phone_number"
                   />
