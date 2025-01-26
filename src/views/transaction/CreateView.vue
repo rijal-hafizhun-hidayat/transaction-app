@@ -132,12 +132,22 @@ const nameWithLang = (costumer: Customer | null) => {
   return `${costumer.nama} - ${costumer.kode}`
 }
 
-const toogleIsNewCostumer = (): void => {
+const generateCustomerCode = async () => {
+  try {
+    const result: AxiosResponse<Fetch> = await api.get('customer/code')
+    form.customer = result.data.data as string
+  } catch (error) {
+    const err = error as AxiosError
+    console.log(err)
+  }
+}
+
+const toogleIsNewCostumer = async (): Promise<void> => {
   isNewCustomer.value = !isNewCustomer.value
 
   if (isNewCustomer.value) {
     textButtonIsNewCustomer.value = 'sudah ada costumer'
-    form.customer = ''
+    await generateCustomerCode()
   } else {
     textButtonIsNewCustomer.value = 'buat costumer baru'
     form.customer = null
