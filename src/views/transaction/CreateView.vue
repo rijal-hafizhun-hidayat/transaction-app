@@ -5,11 +5,15 @@ import DateInput from '@/components/base/DateInput.vue'
 import TextInput from '@/components/base/TextInput.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import DangerButton from '@/components/base/DangerButton.vue'
+import InputError from '@/components/base/InputError.vue'
 import Multiselect from 'vue-multiselect'
 import { computed, onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
 import { NumberUtil } from '@/utils/NumberUtil'
+import { ErrorUtil } from '@/utils/ErrorUtil'
+import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
+import { useRouter } from 'vue-router'
 
 interface Form {
   no_transaction: string
@@ -21,7 +25,7 @@ interface Form {
 }
 interface Fetch {
   message: string
-  data: string | Customer[] | Item[]
+  data: string | Customer[] | Item[] | Transaction
 }
 interface Item {
   id: number
@@ -39,7 +43,26 @@ interface Customer {
   created_at: Date
   updated_at: Date
 }
+interface Transaction {
+  kode: string
+  tgl: Date
+  subtotal: number
+  diskon: number
+  ongkir: number
+  total_bayar: number
+  created_at: Date
+  updated_at: Date
+}
+interface Validation {
+  status: number
+  data: {
+    statusCode: number
+    errors: Record<string, string[]>
+  }
+}
 
+const router = useRouter()
+const validation: Ref<Validation | null> = ref(null)
 const items: Ref<Item[]> = ref([])
 const textButtonIsNewCustomer: Ref<string> = ref('buat costumer baru')
 const isNewCustomer: Ref<boolean> = ref(false)
@@ -132,6 +155,8 @@ const setFormTelpAndName = (customer: Customer): void => {
 
 const pushSelectedItems = () => {
   selectedItems.value.push(form.items as Item)
+  batchItemQuantities.value.push('1')
+  batchItemDiscount.value.push('0')
   console.log(selectedItems.value)
   form.items = null
 }
@@ -155,12 +180,12 @@ const destroySelectedItemByItemId = (itemId: number) => {
 const calculateDiscountPrice = (index: number): number => {
   const price = selectedItems.value[index].harga
   const discount = batchItemDiscount.value[index]
+  console.log(price)
+  console.log(discount)
   const discountPrice = discount ? price * (parseInt(discount as string) / 100) : 0
+  console.log(discountPrice)
 
-  if (discountPrice !== 0) {
-    batchDiscountPrice.value[index] = discountPrice
-    return discountPrice
-  }
+  batchDiscountPrice.value[index] = discountPrice
 
   return discountPrice
 }
@@ -222,6 +247,7 @@ const parseBatchItemDiscountStringToInt = computed(() => {
 
 const send = async () => {
   console.log(form)
+  console.log(selectedItems.value)
   console.log(batchItemQuantities.value)
   console.log(batchItemDiscount.value)
   console.log(batchDiscountPrice.value)
@@ -234,10 +260,11 @@ const send = async () => {
 
   try {
     isLoading.value = true
-    const result = await api.post('transaction', {
+    const result: AxiosResponse<Fetch> = await api.post('transaction', {
       no_transaction: form.no_transaction,
+      items: selectedItems.value,
       date: form.date,
-      costumer_code: customerCode.value,
+      customer_code: customerCode.value,
       subtotal: subTotalPrice.value,
       discount: parseInt(discountTotalPrice.value),
       shipping_cost: parseInt(shippingCost.value),
@@ -249,11 +276,22 @@ const send = async () => {
       total: batchTotalPriceItem.value,
       name: form.name,
       phone_number: form.phone_number,
+      is_new_costumer: isNewCustomer.value,
     })
-    console.log(result)
+
+    SweetAlertUtil.successAlert(result.data.message)
+    router.push({
+      name: 'transaction.index',
+    })
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoading.value = false
   }
@@ -288,10 +326,22 @@ const send = async () => {
                     class="mt-1 block w-full"
                     v-model="form.no_transaction"
                   />
+                  <InputError
+                    v-if="
+                      validation &&
+                      validation.status === 400 &&
+                      validation.data.errors.no_transaction
+                    "
+                    :message="validation.data.errors.no_transaction[0]"
+                  />
                 </div>
                 <div>
                   <InputLabel>Tanggal</InputLabel>
                   <DateInput class="mt-1 block w-full" v-model="form.date" />
+                  <InputError
+                    v-if="validation && validation.status === 400 && validation.data.errors.date"
+                    :message="validation.data.errors.date[0]"
+                  />
                 </div>
               </div>
             </div>
@@ -325,6 +375,14 @@ const send = async () => {
                         :taggable="false"
                       ></Multiselect>
                       <TextInput v-else class="mt-1" v-model="form.customer" />
+                      <InputError
+                        v-if="
+                          validation &&
+                          validation.status === 400 &&
+                          validation.data.errors.customer_code
+                        "
+                        :message="validation.data.errors.customer_code[0]"
+                      />
                     </div>
                     <div>
                       <p class="text-center">atau</p>
@@ -345,6 +403,10 @@ const send = async () => {
                     class="mt-1 block w-full"
                     v-model="form.name"
                   />
+                  <InputError
+                    v-if="validation && validation.status === 400 && validation.data.errors.name"
+                    :message="validation.data.errors.name[0]"
+                  />
                 </div>
                 <div>
                   <InputLabel>Telp</InputLabel>
@@ -352,6 +414,12 @@ const send = async () => {
                     :disabled="!isNewCustomer"
                     class="mt-1 block w-full"
                     v-model="form.phone_number"
+                  />
+                  <InputError
+                    v-if="
+                      validation && validation.status === 400 && validation.data.errors.phone_number
+                    "
+                    :message="validation.data.errors.phone_number[0]"
                   />
                 </div>
               </div>
@@ -380,6 +448,10 @@ const send = async () => {
                     :multiple="false"
                     :taggable="false"
                   ></Multiselect>
+                  <InputError
+                    v-if="validation && validation.status === 400 && validation.data.errors.items"
+                    :message="validation.data.errors.items[0]"
+                  />
                 </div>
                 <div class="overflow-x-auto">
                   <table class="w-full whitespace-nowrap">
@@ -410,6 +482,7 @@ const send = async () => {
                         </td>
                         <td class="border-t items-center px-6 py-4">
                           <TextInput
+                            :required="true"
                             class="w-20"
                             type="number"
                             v-model="batchItemQuantities[index]"
@@ -420,6 +493,7 @@ const send = async () => {
                         </td>
                         <td class="border-t items-center px-6 py-4">
                           <TextInput
+                            :required="true"
                             type="number"
                             class="w-full"
                             v-model="batchItemDiscount[index]"
@@ -473,12 +547,36 @@ const send = async () => {
                       <tr class="text-left">
                         <th>Diskon</th>
                         <th>:</th>
-                        <th><TextInput type="number" v-model="discountTotalPrice" /></th>
+                        <th>
+                          <div>
+                            <TextInput type="number" v-model="discountTotalPrice" />
+                            <InputError
+                              v-if="
+                                validation &&
+                                validation.status === 400 &&
+                                validation.data.errors.discount
+                              "
+                              :message="validation.data.errors.discount[0]"
+                            />
+                          </div>
+                        </th>
                       </tr>
                       <tr class="text-left">
                         <th>Ongkir</th>
                         <th>:</th>
-                        <th><TextInput type="number" v-model="shippingCost" /></th>
+                        <th>
+                          <div>
+                            <TextInput type="number" v-model="shippingCost" />
+                            <InputError
+                              v-if="
+                                validation &&
+                                validation.status === 400 &&
+                                validation.data.errors.shipping_cost
+                              "
+                              :message="validation.data.errors.shipping_cost[0]"
+                            />
+                          </div>
+                        </th>
                       </tr>
                       <tr class="text-left">
                         <th>Total bayar</th>
