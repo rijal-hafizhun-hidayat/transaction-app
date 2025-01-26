@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import DashboardLayout from '@/layout/DashboardLayout.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
+import TextInput from '@/components/base/TextInput.vue'
 import { useRouter } from 'vue-router'
-import { onMounted, ref, type Ref } from 'vue'
+import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
 import { Timestamp } from '@/utils/Timestamp'
 import { NumberUtil } from '@/utils/NumberUtil'
 
+interface Form {
+  search: string
+}
 interface Fetch {
   message: string
   data: Transaction[]
@@ -35,6 +39,9 @@ interface Transaction {
 const router = useRouter()
 const isLoading: Ref<boolean> = ref(false)
 const transactions: Ref<Transaction[]> = ref([])
+const form: Form = reactive({
+  search: '',
+})
 
 onMounted(async () => {
   try {
@@ -48,6 +55,24 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
+
+const search = async () => {
+  try {
+    isLoading.value = true
+    const result: AxiosResponse<Fetch> = await api.get('transaction', {
+      params: {
+        search: form.search,
+      },
+    })
+    transactions.value = result.data.data as Transaction[]
+  } catch (error) {
+    const err = error as AxiosError
+    console.log(err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
 const toTransactionCreateView = () => {
   router.push({
     name: 'transaction.create',
@@ -68,6 +93,20 @@ const toTransactionCreateView = () => {
         </div>
       </div>
     </template>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
+        <form @submit.prevent="search" class="grid grid-cols-2 gap-2">
+          <div>
+            <TextInput placeholder="cari keyword" v-model="form.search" class="w-full" />
+          </div>
+          <div>
+            <PrimaryButton class="my-1" type="submit">search</PrimaryButton>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
         <table class="w-full whitespace-nowrap">
