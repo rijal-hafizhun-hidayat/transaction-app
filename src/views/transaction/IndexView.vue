@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import DashboardLayout from '@/layout/DashboardLayout.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
+import DangerButton from '@/components/base/DangerButton.vue'
 import TextInput from '@/components/base/TextInput.vue'
 import { useRouter } from 'vue-router'
 import { onMounted, reactive, ref, type Ref } from 'vue'
@@ -8,6 +9,7 @@ import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
 import { Timestamp } from '@/utils/Timestamp'
 import { NumberUtil } from '@/utils/NumberUtil'
+import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 
 interface Form {
   search: string
@@ -37,6 +39,7 @@ interface Transaction {
 }
 
 const router = useRouter()
+const isLoadingButton: Ref<boolean> = ref(false)
 const isLoading: Ref<boolean> = ref(false)
 const transactions: Ref<Transaction[]> = ref([])
 const form: Form = reactive({
@@ -70,6 +73,19 @@ const search = async () => {
     console.log(err)
   } finally {
     isLoading.value = false
+  }
+}
+
+const destroyTransactionByTransactionId = async (transactionId: number) => {
+  try {
+    const result: AxiosResponse<Fetch> = await api.delete(`transaction/${transactionId}`)
+    transactions.value = transactions.value.filter(
+      (transaction) => transaction.id !== transactionId,
+    )
+    SweetAlertUtil.successAlert(result.data.message)
+  } catch (error) {
+    const err = error as AxiosError
+    console.log(err)
   }
 }
 
@@ -121,6 +137,7 @@ const toTransactionCreateView = () => {
               <th class="pb-4 pt-6 px-6">Diskon</th>
               <th class="pb-4 pt-6 px-6">Ongkir</th>
               <th class="pb-4 pt-6 px-6">Total</th>
+              <th class="pb-4 pt-6 px-6">Aksi</th>
             </tr>
           </thead>
           <tbody v-if="transactions.length > 0">
@@ -155,6 +172,16 @@ const toTransactionCreateView = () => {
               </td>
               <td class="border-t items-center px-6 py-4">
                 {{ NumberUtil.formatRupiah(transaction.total_bayar) }}
+              </td>
+              <td class="border-t items-center px-6 py-4 flex justify-start space-x-4">
+                <div>
+                  <DangerButton
+                    @click="destroyTransactionByTransactionId(transaction.id)"
+                    :disabled="isLoadingButton"
+                    type="button"
+                    >Hapus</DangerButton
+                  >
+                </div>
               </td>
             </tr>
           </tbody>
