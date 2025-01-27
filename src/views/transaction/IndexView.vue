@@ -17,6 +17,7 @@ interface Form {
 interface Fetch {
   message: string
   data: Transaction[]
+  sum_total: number
 }
 interface Transaction {
   id: number
@@ -42,6 +43,7 @@ const router = useRouter()
 const isLoadingButton: Ref<boolean> = ref(false)
 const isLoading: Ref<boolean> = ref(false)
 const transactions: Ref<Transaction[]> = ref([])
+const sumTotal: Ref<number> = ref(0)
 const form: Form = reactive({
   search: '',
 })
@@ -51,6 +53,7 @@ onMounted(async () => {
     isLoading.value = true
     const result: AxiosResponse<Fetch> = await api.get('transaction')
     transactions.value = result.data.data as Transaction[]
+    sumTotal.value = result.data.sum_total
   } catch (error) {
     const err = error as AxiosError
     console.log(err)
@@ -68,6 +71,7 @@ const search = async () => {
       },
     })
     transactions.value = result.data.data as Transaction[]
+    sumTotal.value = result.data.sum_total
   } catch (error) {
     const err = error as AxiosError
     console.log(err)
@@ -133,84 +137,90 @@ const toTransactionShowView = (transactionId: number) => {
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
-        <table class="w-full whitespace-nowrap">
-          <thead>
-            <tr class="text-left font-bold">
-              <th class="pb-4 pt-6 px-6">#</th>
-              <th class="pb-4 pt-6 px-6">No Transaksi</th>
-              <th class="pb-4 pt-6 px-6">Tanggal</th>
-              <th class="pb-4 pt-6 px-6">Nama Costumer</th>
-              <th class="pb-4 pt-6 px-6">Jumlah Barang</th>
-              <th class="pb-4 pt-6 px-6">Sub total</th>
-              <th class="pb-4 pt-6 px-6">Diskon</th>
-              <th class="pb-4 pt-6 px-6">Ongkir</th>
-              <th class="pb-4 pt-6 px-6">Total</th>
-              <th class="pb-4 pt-6 px-6">Aksi</th>
-            </tr>
-          </thead>
-          <tbody v-if="transactions.length > 0">
-            <tr
-              v-for="(transaction, index) in transactions"
-              :key="transaction.id"
-              class="hover:bg-gray-100"
-            >
-              <td class="border-t items-center px-6 py-4">
-                {{ index + 1 }}
-              </td>
-              <td class="border-t items-center px-6 py-4">
-                {{ transaction.kode }}
-              </td>
-              <td class="border-t items-center px-6 py-4">
-                {{ Timestamp.formatTimestamp(transaction.tgl) }}
-              </td>
-              <td class="border-t items-center px-6 py-4">
-                {{ transaction.customer.name }}
-              </td>
-              <td class="border-t items-center px-6 py-4">
-                {{ transaction.total_qty }}
-              </td>
-              <td class="border-t items-center px-6 py-4">
-                {{ NumberUtil.formatRupiah(transaction.subtotal) }}
-              </td>
-              <td class="border-t items-center px-6 py-4">
-                {{ transaction.diskon }}
-              </td>
-              <td class="border-t items-center px-6 py-4">
-                {{ NumberUtil.formatRupiah(transaction.ongkir) }}
-              </td>
-              <td class="border-t items-center px-6 py-4">
-                {{ NumberUtil.formatRupiah(transaction.total_bayar) }}
-              </td>
-              <td class="border-t items-center px-6 py-4 flex justify-start space-x-4">
-                <div>
-                  <PrimaryButton
-                    @click="toTransactionShowView(transaction.id)"
-                    :disabled="isLoadingButton"
-                    type="button"
-                    >Ubah</PrimaryButton
-                  >
-                </div>
-                <div>
-                  <DangerButton
-                    @click="destroyTransactionByTransactionId(transaction.id)"
-                    :disabled="isLoadingButton"
-                    type="button"
-                    >Hapus</DangerButton
-                  >
-                </div>
-              </td>
-            </tr>
-          </tbody>
-          <tbody v-else>
-            <tr class="hover:bg-gray-100">
-              <td class="border-t items-center px-6 py-4 text-center" colspan="9">
-                <span v-if="isLoading === true">loading ...</span>
-                <span v-else>data not found</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="bg-white mt-10 px-4 py-6 rounded shadow-md">
+        <div class="overflow-x-auto">
+          <table class="w-full whitespace-nowrap">
+            <thead>
+              <tr class="text-left font-bold">
+                <th class="pb-4 pt-6 px-6">#</th>
+                <th class="pb-4 pt-6 px-6">No Transaksi</th>
+                <th class="pb-4 pt-6 px-6">Tanggal</th>
+                <th class="pb-4 pt-6 px-6">Nama Costumer</th>
+                <th class="pb-4 pt-6 px-6">Jumlah Barang</th>
+                <th class="pb-4 pt-6 px-6">Sub total</th>
+                <th class="pb-4 pt-6 px-6">Diskon</th>
+                <th class="pb-4 pt-6 px-6">Ongkir</th>
+                <th class="pb-4 pt-6 px-6">Total</th>
+                <th class="pb-4 pt-6 px-6">Aksi</th>
+              </tr>
+            </thead>
+            <tbody v-if="transactions.length > 0">
+              <tr
+                v-for="(transaction, index) in transactions"
+                :key="transaction.id"
+                class="hover:bg-gray-100"
+              >
+                <td class="border-t items-center px-6 py-4">
+                  {{ index + 1 }}
+                </td>
+                <td class="border-t items-center px-6 py-4">
+                  {{ transaction.kode }}
+                </td>
+                <td class="border-t items-center px-6 py-4">
+                  {{ Timestamp.formatTimestamp(transaction.tgl) }}
+                </td>
+                <td class="border-t items-center px-6 py-4">
+                  {{ transaction.customer.name }}
+                </td>
+                <td class="border-t items-center px-6 py-4">
+                  {{ transaction.total_qty }}
+                </td>
+                <td class="border-t items-center px-6 py-4">
+                  {{ NumberUtil.formatRupiah(transaction.subtotal) }}
+                </td>
+                <td class="border-t items-center px-6 py-4">
+                  {{ transaction.diskon }}
+                </td>
+                <td class="border-t items-center px-6 py-4">
+                  {{ NumberUtil.formatRupiah(transaction.ongkir) }}
+                </td>
+                <td class="border-t items-center px-6 py-4">
+                  {{ NumberUtil.formatRupiah(transaction.total_bayar) }}
+                </td>
+                <td class="border-t items-center px-6 py-4 flex justify-start space-x-4">
+                  <div>
+                    <PrimaryButton
+                      @click="toTransactionShowView(transaction.id)"
+                      :disabled="isLoadingButton"
+                      type="button"
+                      >Ubah</PrimaryButton
+                    >
+                  </div>
+                  <div>
+                    <DangerButton
+                      @click="destroyTransactionByTransactionId(transaction.id)"
+                      :disabled="isLoadingButton"
+                      type="button"
+                      >Hapus</DangerButton
+                    >
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+            <tbody v-else>
+              <tr class="hover:bg-gray-100">
+                <td class="border-t items-center px-6 py-4 text-center" colspan="10">
+                  <span v-if="isLoading === true">loading ...</span>
+                  <span v-else>data not found</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex justify-end">
+          <h1 class="font-semibold">Grand Total: {{ NumberUtil.formatRupiah(sumTotal) }}</h1>
+        </div>
       </div>
     </div>
   </DashboardLayout>
