@@ -28,7 +28,7 @@ api.interceptors.response.use(
     NProgress.done()
     if (err.response?.status === 403 || err.response?.status === 401) {
       router.push({
-        name: 'transaction.index',
+        name: 'login.index',
       })
     }
     return Promise.reject(error)
