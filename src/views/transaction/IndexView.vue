@@ -94,6 +94,15 @@ const toTransactionCreateView = () => {
     name: 'transaction.create',
   })
 }
+
+const toTransactionShowView = (transactionId: number) => {
+  router.push({
+    name: 'transaction.show',
+    params: {
+      transactionId: transactionId,
+    },
+  })
+}
 </script>
 <template>
   <DashboardLayout>
@@ -174,6 +183,14 @@ const toTransactionCreateView = () => {
                 {{ NumberUtil.formatRupiah(transaction.total_bayar) }}
               </td>
               <td class="border-t items-center px-6 py-4 flex justify-start space-x-4">
+                <div>
+                  <PrimaryButton
+                    @click="toTransactionShowView(transaction.id)"
+                    :disabled="isLoadingButton"
+                    type="button"
+                    >Ubah</PrimaryButton
+                  >
+                </div>
                 <div>
                   <DangerButton
                     @click="destroyTransactionByTransactionId(transaction.id)"
