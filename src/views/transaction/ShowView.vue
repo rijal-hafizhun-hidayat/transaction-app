@@ -97,9 +97,10 @@ const isLoadingCustomer: Ref<boolean> = ref(false)
 const isLoadingItem: Ref<boolean> = ref(false)
 const customers: Ref<Customer[]> = ref([])
 const isLoading: Ref<boolean> = ref(false)
+const selectedCustomer: Ref<Customer | null> = ref(null)
 const selectedItems: Ref<Item[]> = ref([])
-const discountTotalPrice: Ref<string | number> = ref('0')
-const shippingCost: Ref<string | number> = ref('0')
+const discountTotalPrice: Ref<number> = ref(0)
+const shippingCost: Ref<number> = ref(0)
 const subTotalPrice: Ref<number> = ref(0)
 const totalPrice: Ref<number> = ref(0)
 const batchDiscountPrice: Ref<number[]> = ref([])
@@ -147,6 +148,7 @@ onMounted(async () => {
     form.no_transaction = transaction.kode
     form.date = new Date(transaction.tgl)
     form.customer = transaction.customer as Customer
+    selectedCustomer.value = transaction.customer as Customer
     form.name = transaction.customer.nama
     form.phone_number = transaction.customer.telp
     fetchSelectedItems(transaction)
@@ -183,6 +185,7 @@ const calculateTotalPriceItemByQty = (index: number): void => {
   const total = batchItemQuantities.value[index] * batchPriceAfterDiscount.value[index]
   batchTotalPriceItem.value[index] = total
   calculateSubTotal()
+  calculateTotalPrice()
 }
 
 const calculateDiscountPriceByDiscountPct = (index: number): void => {
@@ -195,6 +198,7 @@ const calculateDiscountPriceByDiscountPct = (index: number): void => {
     batchItemQuantities.value[index] * batchPriceAfterDiscount.value[index]
 
   calculateSubTotal()
+  calculateTotalPrice()
 }
 
 const calculateSubTotal = (): void => {
@@ -207,10 +211,14 @@ const calculateSubTotal = (): void => {
 }
 
 const calculateTotalPrice = (): void => {
+  if (isNaN(shippingCost.value)) {
+    shippingCost.value = 0
+  }
+  if (isNaN(discountTotalPrice.value)) {
+    discountTotalPrice.value = 0
+  }
   totalPrice.value =
-    subTotalPrice.value +
-    parseInt(shippingCost.value as string) -
-    parseInt(discountTotalPrice.value as string)
+    Number(subTotalPrice.value) + Number(shippingCost.value) - Number(discountTotalPrice.value)
 }
 
 const generateCustomerCode = async () => {
@@ -229,13 +237,15 @@ const toogleIsNewCostumer = async (): Promise<void> => {
   if (isNewCustomer.value) {
     textButtonIsNewCustomer.value = 'sudah ada costumer'
     await generateCustomerCode()
+    form.name = ''
+    form.phone_number = ''
   } else {
     textButtonIsNewCustomer.value = 'buat costumer baru'
-    form.customer = null
+    const customer = selectedCustomer.value as Customer
+    form.customer = customer
+    form.name = customer.nama
+    form.phone_number = customer.telp
   }
-
-  form.name = ''
-  form.phone_number = ''
 }
 
 const setFormTelpAndName = (customer: Customer): void => {
@@ -245,17 +255,18 @@ const setFormTelpAndName = (customer: Customer): void => {
 }
 
 const pushSelectedItems = () => {
-  selectedItems.value.push(form.items as Item)
+  const item: Item = form.items as Item
+  selectedItems.value.push(item)
   batchItemQuantities.value.push(1)
   batchItemDiscount.value.push(0)
+  batchDiscountPrice.value.push(0)
+  batchPriceAfterDiscount.value.push(item.harga)
+  batchTotalPriceItem.value.push(item.harga)
   console.log(selectedItems.value)
   form.items = null
 }
 
 const destroySelectedItemByItemId = (itemId: number) => {
-  console.log(batchItemQuantities.value)
-  console.log(batchItemDiscount.value)
-
   const index = selectedItems.value.findIndex((item) => item.id === itemId)
 
   if (index !== -1) {
@@ -266,6 +277,9 @@ const destroySelectedItemByItemId = (itemId: number) => {
     batchTotalPriceItem.value.splice(index, 1)
     batchPriceAfterDiscount.value.splice(index, 1)
   }
+
+  calculateSubTotal()
+  calculateTotalPrice()
 }
 
 const customerCode = computed(() => {
@@ -298,24 +312,27 @@ const send = async () => {
 
   try {
     isLoading.value = true
-    const result: AxiosResponse<Fetch> = await api.post('transaction', {
-      no_transaction: form.no_transaction,
-      items: selectedItems.value,
-      date: form.date,
-      customer_code: customerCode.value,
-      subtotal: subTotalPrice.value,
-      discount: discountTotalPrice.value,
-      shipping_cost: shippingCost.value,
-      total_price: totalPrice.value,
-      qty: parseBatchItemQuantitiesToInt.value,
-      discount_pct: parseBatchItemDiscountStringToInt.value,
-      discount_nominal: batchDiscountPrice.value,
-      discount_price: batchPriceAfterDiscount.value,
-      total: batchTotalPriceItem.value,
-      name: form.name,
-      phone_number: form.phone_number,
-      is_new_costumer: isNewCustomer.value,
-    })
+    const result: AxiosResponse<Fetch> = await api.put(
+      `transaction/${route.params.transactionId}`,
+      {
+        no_transaction: form.no_transaction,
+        items: selectedItems.value,
+        date: form.date,
+        customer_code: customerCode.value,
+        subtotal: subTotalPrice.value,
+        discount: Number(discountTotalPrice.value),
+        shipping_cost: shippingCost.value,
+        total_price: totalPrice.value,
+        qty: parseBatchItemQuantitiesToInt.value,
+        discount_pct: parseBatchItemDiscountStringToInt.value,
+        discount_nominal: batchDiscountPrice.value,
+        discount_price: batchPriceAfterDiscount.value,
+        total: batchTotalPriceItem.value,
+        name: form.name,
+        phone_number: form.phone_number,
+        is_new_costumer: isNewCustomer.value,
+      },
+    )
 
     SweetAlertUtil.successAlert(result.data.message)
     router.push({
