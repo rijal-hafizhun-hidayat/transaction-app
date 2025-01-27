@@ -1,11 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import NProgress from 'nprogress'
 import TransactionIndexView from '@/views/transaction/IndexView.vue'
 import TransactionCreateView from '@/views/transaction/CreateView.vue'
 import TransactionShowView from '@/views/transaction/ShowView.vue'
 import LoginIndexView from '@/views/login/IndexView.vue'
+import UserIndexView from '@/views/user/IndexView.vue'
+import UserCreateView from '@/views/user/CreateView.vue'
+import UserShowView from '@/views/user/ShowView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
-import NProgress from 'nprogress'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -17,6 +20,26 @@ const router = createRouter({
           path: '',
           name: 'login.index',
           component: LoginIndexView,
+        },
+      ],
+    },
+    {
+      path: '/user',
+      children: [
+        {
+          path: '',
+          name: 'user.index',
+          component: UserIndexView,
+        },
+        {
+          path: 'create',
+          name: 'user.create',
+          component: UserCreateView,
+        },
+        {
+          path: ':userId',
+          name: 'user.show',
+          component: UserShowView,
         },
       ],
     },
