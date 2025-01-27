@@ -11,9 +11,7 @@ interface Auth {
   id: number
   name: string
   email: string
-  email_verified_at: Date | null
   role: Role
-  profile_picture: string | null
 }
 interface Role {
   id: number
