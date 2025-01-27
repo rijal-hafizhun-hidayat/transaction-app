@@ -204,7 +204,7 @@ const toTransactionShowView = (transactionId: number) => {
           </tbody>
           <tbody v-else>
             <tr class="hover:bg-gray-100">
-              <td class="border-t items-center px-6 py-4 text-center" colspan="8">
+              <td class="border-t items-center px-6 py-4 text-center" colspan="9">
                 <span v-if="isLoading === true">loading ...</span>
                 <span v-else>data not found</span>
               </td>
