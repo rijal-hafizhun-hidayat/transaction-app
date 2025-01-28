@@ -410,8 +410,8 @@ const send = async () => {
               <div class="space-y-4">
                 <div>
                   <InputLabel>kode</InputLabel>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-1">
-                    <div>
+                  <div class="flex flex-col sm:flex-row space-x-3">
+                    <div class="w-full">
                       <Multiselect
                         v-if="!isNewCustomer"
                         :close-on-select="true"
@@ -440,7 +440,7 @@ const send = async () => {
                       />
                     </div>
                     <div>
-                      <p class="text-center">atau</p>
+                      <p class="text-center my-3 sm:my-2">atau</p>
                     </div>
                     <div>
                       <PrimaryButton class="w-full" @click="toogleIsNewCostumer" type="button"
