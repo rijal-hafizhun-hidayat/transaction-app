@@ -53,7 +53,7 @@ const router = createRouter({
       ],
       meta: {
         requiresAuth: true,
-        requiresRoles: ['admin', 'teller'],
+        requiresRoles: ['admin'],
       },
     },
     {
