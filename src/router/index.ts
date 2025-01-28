@@ -37,6 +37,10 @@ const router = createRouter({
       path: '/dashboard',
       name: 'dashboard.index',
       component: DashboardIndexView,
+      meta: {
+        requiresAuth: true,
+        requiresRoles: ['admin', 'teller'],
+      },
     },
     {
       path: '/item',
@@ -59,7 +63,7 @@ const router = createRouter({
       ],
       meta: {
         requiresAuth: true,
-        requiresRoles: ['admin'],
+        requiresRoles: ['admin', 'teller'],
       },
     },
     {
@@ -107,7 +111,7 @@ const router = createRouter({
       ],
       meta: {
         requiresAuth: true,
-        requiresRoles: ['admin'],
+        requiresRoles: ['admin', 'teller'],
       },
     },
     {
