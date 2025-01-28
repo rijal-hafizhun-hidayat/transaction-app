@@ -16,6 +16,7 @@ import RoleShowView from '@/views/role/ShowView.vue'
 import ItemIndexView from '@/views/item/IndexView.vue'
 import ItemCreateView from '@/views/item/CreateView.vue'
 import ItemShowView from '@/views/item/ShowView.vue'
+import DashboardIndexView from '@/views/dashboard/IndexView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 
@@ -31,6 +32,11 @@ const router = createRouter({
           component: LoginIndexView,
         },
       ],
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard.index',
+      component: DashboardIndexView,
     },
     {
       path: '/item',

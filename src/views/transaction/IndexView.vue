@@ -10,48 +10,21 @@ import api from '@/plugin/api'
 import { Timestamp } from '@/utils/Timestamp'
 import { NumberUtil } from '@/utils/NumberUtil'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
-
-interface Form {
-  search: string
-}
-interface Fetch {
-  message: string
-  data: Transaction[]
-  sum_total: number
-}
-interface Transaction {
-  id: number
-  kode: string
-  tgl: Date
-  subtotal: number
-  diskon: number
-  ongkir: number
-  total_bayar: number
-  total_qty: number
-  created_at: Date
-  updated_at: Date
-  customer: {
-    kode: string
-    name: string
-    telp: string
-    created_at: Date
-    updated_at: Date
-  }
-}
+import type { SearchForm, Transaction, TransactionFetch } from '@/interface/TransactionInterface'
 
 const router = useRouter()
 const isLoadingButton: Ref<boolean> = ref(false)
 const isLoading: Ref<boolean> = ref(false)
 const transactions: Ref<Transaction[]> = ref([])
 const sumTotal: Ref<number> = ref(0)
-const form: Form = reactive({
+const form: SearchForm = reactive({
   search: '',
 })
 
 onMounted(async () => {
   try {
     isLoading.value = true
-    const result: AxiosResponse<Fetch> = await api.get('transaction')
+    const result: AxiosResponse<TransactionFetch> = await api.get('transaction')
     transactions.value = result.data.data as Transaction[]
     sumTotal.value = result.data.sum_total
   } catch (error) {
@@ -65,7 +38,7 @@ onMounted(async () => {
 const search = async () => {
   try {
     isLoading.value = true
-    const result: AxiosResponse<Fetch> = await api.get('transaction', {
+    const result: AxiosResponse<TransactionFetch> = await api.get('transaction', {
       params: {
         search: form.search,
       },
@@ -82,7 +55,7 @@ const search = async () => {
 
 const destroyTransactionByTransactionId = async (transactionId: number) => {
   try {
-    const result: AxiosResponse<Fetch> = await api.delete(`transaction/${transactionId}`)
+    const result: AxiosResponse<TransactionFetch> = await api.delete(`transaction/${transactionId}`)
     transactions.value = transactions.value.filter(
       (transaction) => transaction.id !== transactionId,
     )

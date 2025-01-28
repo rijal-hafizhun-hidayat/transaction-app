@@ -10,24 +10,14 @@ import type { AxiosError } from 'axios'
 import { ErrorUtil } from '@/utils/ErrorUtil'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 import { useAuthStore } from '@/stores/auth'
-
-interface Form {
-  email: string
-  password: string
-}
-interface Validation {
-  status: number
-  data: {
-    statusCode: number
-    errors: Record<string, string[]>
-  }
-}
+import type { Validation } from '@/interface/GlobalInterface'
+import type { LoginForm } from '@/interface/AuthInterface'
 
 const authStore = useAuthStore()
 const validation: Ref<Validation | null> = ref(null)
 const router = useRouter()
 const isLoading: Ref<boolean> = ref(false)
-const form: Form = reactive({
+const form: LoginForm = reactive({
   email: '',
   password: '',
 })
@@ -37,7 +27,7 @@ const send = async () => {
     isLoading.value = true
     await authStore.login(form)
     router.push({
-      name: 'transaction.index',
+      name: 'dashboard.index',
     })
   } catch (error) {
     const err = error as AxiosError

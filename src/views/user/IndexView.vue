@@ -8,25 +8,7 @@ import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
 import { Timestamp } from '@/utils/Timestamp'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
-
-interface Fetch {
-  message: string
-  data: UserWithRole[]
-}
-interface Role {
-  id: number
-  name: string
-  created_at: Date
-  updated_at: Date
-}
-interface UserWithRole {
-  id: number
-  name: string
-  email: string
-  created_at: Date
-  updated_at: Date
-  role: Role
-}
+import type { UserFetch, UserWithRole } from '@/interface/UserInterface'
 
 const router = useRouter()
 const isLoading: Ref<boolean> = ref(false)
@@ -36,7 +18,7 @@ const users: Ref<UserWithRole[]> = ref([])
 onMounted(async () => {
   try {
     isLoading.value = true
-    const result: AxiosResponse<Fetch> = await api.get('user')
+    const result: AxiosResponse<UserFetch> = await api.get('user')
     users.value = result.data.data as UserWithRole[]
   } catch (error) {
     const err = error as AxiosError
@@ -49,7 +31,7 @@ onMounted(async () => {
 const destroyUserByUserId = async (userId: number) => {
   try {
     isLoadingButton.value = true
-    const result: AxiosResponse<Fetch> = await api.delete(`user/${userId}`)
+    const result: AxiosResponse<UserFetch> = await api.delete(`user/${userId}`)
     SweetAlertUtil.successAlert(result.data.message)
     users.value = users.value.filter((user) => user.id !== userId)
   } catch (error) {

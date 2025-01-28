@@ -1,43 +1,15 @@
+import type { Auth, AuthFetch, LoginFetch, LoginForm, Token } from '@/interface/AuthInterface'
 import api from '@/plugin/api'
 import type { AxiosError, AxiosResponse } from 'axios'
 import { defineStore } from 'pinia'
 import { ref, type Ref } from 'vue'
 
-interface Fetch {
-  message: string
-  data: Auth
-}
-interface Auth {
-  id: number
-  name: string
-  email: string
-  role: Role
-}
-interface Role {
-  id: number
-  name: string
-  created_at: Date
-  updated_at: Date
-}
-interface FormLogin {
-  email: string
-  password: string
-}
-interface Login {
-  statusCode: number
-  message: string
-  data: Token
-}
-interface Token {
-  token: string
-}
-
 export const useAuthStore = defineStore('auth', () => {
   const auth: Ref<Auth | null> = ref(null)
   const token: Ref<string | null> = ref(null)
 
-  async function login(formLogin: FormLogin) {
-    const result: AxiosResponse<Login> = await api.post<Login>('login', {
+  async function login(formLogin: LoginForm) {
+    const result: AxiosResponse<LoginFetch> = await api.post<LoginFetch>('login', {
       email: formLogin.email,
       password: formLogin.password,
     })
@@ -49,7 +21,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function currentUser(): Promise<void> {
     try {
-      const result: AxiosResponse<Fetch> = await api.get('current-user')
+      const result: AxiosResponse<AuthFetch> = await api.get('current-user')
       auth.value = result.data.data as Auth
     } catch (error) {
       const err = error as AxiosError
