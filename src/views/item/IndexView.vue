@@ -2,13 +2,14 @@
 import DashboardLayout from '@/layout/DashboardLayout.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import DangerButton from '@/components/base/DangerButton.vue'
-import { onMounted, ref, type Ref } from 'vue'
+import TextInput from '@/components/base/TextInput.vue'
+import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
 import { Timestamp } from '@/utils/Timestamp'
 import { useRouter } from 'vue-router'
 import type { Validation } from '@/interface/GlobalInterface'
-import type { Item, ItemFetch } from '@/interface/ItemInterface'
+import type { Item, ItemFetch, SearchItemForm } from '@/interface/ItemInterface'
 import { ErrorUtil } from '@/utils/ErrorUtil'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 import { NumberUtil } from '@/utils/NumberUtil'
@@ -18,6 +19,9 @@ const validation: Ref<Validation | null> = ref(null)
 const isLoadingButton: Ref<boolean> = ref(false)
 const isLoading: Ref<boolean> = ref(false)
 const items: Ref<Item[]> = ref([])
+const form: SearchItemForm = reactive({
+  search: '',
+})
 
 onMounted(async (): Promise<void> => {
   try {
@@ -38,7 +42,30 @@ onMounted(async (): Promise<void> => {
   }
 })
 
-const destroyItemByItemId = async (itemId: number) => {
+const search = async (): Promise<void> => {
+  try {
+    isLoading.value = true
+    const result: AxiosResponse<ItemFetch> = await api.get('item', {
+      params: {
+        search: form.search,
+      },
+    })
+    items.value = result.data.data as Item[]
+  } catch (error) {
+    const err = error as AxiosError
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const destroyItemByItemId = async (itemId: number): Promise<void> => {
   try {
     isLoadingButton.value = true
     const result: AxiosResponse<ItemFetch> = await api.delete(`item/${itemId}`)
@@ -85,6 +112,19 @@ const toItemCreateView = (): void => {
         </div>
       </div>
     </template>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
+        <form @submit.prevent="search" class="grid grid-cols-2 gap-2">
+          <div>
+            <TextInput placeholder="cari keyword" v-model="form.search" class="w-full" />
+          </div>
+          <div>
+            <PrimaryButton class="my-1" type="submit">search</PrimaryButton>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
@@ -138,7 +178,7 @@ const toItemCreateView = (): void => {
           </tbody>
           <tbody v-else>
             <tr class="hover:bg-gray-100">
-              <td class="border-t items-center px-6 py-4 text-center" colspan="4">
+              <td class="border-t items-center px-6 py-4 text-center" colspan="6">
                 <span v-if="isLoading === true">loading ...</span>
                 <span v-else>data not found</span>
               </td>

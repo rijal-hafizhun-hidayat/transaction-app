@@ -13,6 +13,10 @@ export interface ItemForm {
   price: string
 }
 
+export interface SearchItemForm {
+  search: string
+}
+
 export interface ItemFetch {
   message: string
   data: Item[] | Item | string
