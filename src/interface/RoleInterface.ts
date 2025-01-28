@@ -7,6 +7,10 @@ export interface RoleForm {
   name: string
 }
 
+export interface SearchRoleForm {
+  search: string
+}
+
 export interface Role {
   id: number
   name: string

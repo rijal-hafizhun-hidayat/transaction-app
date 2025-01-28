@@ -2,10 +2,11 @@
 import DashboardLayout from '@/layout/DashboardLayout.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import DangerButton from '@/components/base/DangerButton.vue'
-import { onMounted, ref, type Ref } from 'vue'
+import TextInput from '@/components/base/TextInput.vue'
+import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
-import type { FetchRole, Role } from '@/interface/RoleInterface'
+import type { FetchRole, Role, SearchRoleForm } from '@/interface/RoleInterface'
 import { Timestamp } from '@/utils/Timestamp'
 import { useRouter } from 'vue-router'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
@@ -17,6 +18,9 @@ const validation: Ref<Validation | null> = ref(null)
 const isLoadingButton: Ref<boolean> = ref(false)
 const isLoading: Ref<boolean> = ref(false)
 const roles: Ref<Role[]> = ref([])
+const form: SearchRoleForm = reactive({
+  search: '',
+})
 
 onMounted(async (): Promise<void> => {
   try {
@@ -25,11 +29,40 @@ onMounted(async (): Promise<void> => {
     roles.value = result.data.data as Role[]
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoading.value = false
   }
 })
+
+const search = async (): Promise<void> => {
+  try {
+    isLoading.value = true
+    const result: AxiosResponse<FetchRole> = await api.get('role', {
+      params: {
+        search: form.search,
+      },
+    })
+    roles.value = result.data.data as Role[]
+  } catch (error) {
+    const err = error as AxiosError
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const destroyRoleByRoleId = async (roleId: number): Promise<void> => {
   try {
@@ -78,6 +111,19 @@ const toRoleCreateView = (): void => {
         </div>
       </div>
     </template>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
+        <form @submit.prevent="search" class="grid grid-cols-2 gap-2">
+          <div>
+            <TextInput placeholder="cari keyword" v-model="form.search" class="w-full" />
+          </div>
+          <div>
+            <PrimaryButton class="my-1" type="submit">search</PrimaryButton>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
