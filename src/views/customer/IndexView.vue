@@ -2,33 +2,47 @@
 import DashboardLayout from '@/layout/DashboardLayout.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import DangerButton from '@/components/base/DangerButton.vue'
+import TextInput from '@/components/base/TextInput.vue'
 import { useRouter } from 'vue-router'
-import { onMounted, ref, type Ref } from 'vue'
+import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
 import type { Customer, FetchCustomer } from '@/interface/CustomerInterface'
 import { Timestamp } from '@/utils/Timestamp'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
+import type { SearchUserForm } from '@/interface/UserInterface'
+import type { Validation } from '@/interface/GlobalInterface'
+import { ErrorUtil } from '@/utils/ErrorUtil'
 
 const isLoading: Ref<boolean> = ref(false)
 const isLoadingButton: Ref<boolean> = ref(false)
+const validation: Ref<Validation | null> = ref(null)
 const router = useRouter()
 const customers: Ref<Customer[]> = ref([])
+const form: SearchUserForm = reactive({
+  search: '',
+})
 
-onMounted(async () => {
+onMounted(async (): Promise<void> => {
   try {
     isLoading.value = true
     const result: AxiosResponse<FetchCustomer> = await api.get('customer')
     customers.value = result.data.data as Customer[]
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoading.value = false
   }
 })
 
-const toCustomerShowView = (customerId: number) => {
+const toCustomerShowView = (customerId: number): void => {
   router.push({
     name: 'customer.show',
     params: {
@@ -37,13 +51,36 @@ const toCustomerShowView = (customerId: number) => {
   })
 }
 
-const toCustomerCreateView = () => {
+const toCustomerCreateView = (): void => {
   router.push({
     name: 'customer.create',
   })
 }
 
-const destroyCustomerByCustomerId = async (customerId: number) => {
+const search = async (): Promise<void> => {
+  try {
+    isLoading.value = true
+    const result: AxiosResponse<FetchCustomer> = await api.get('customer', {
+      params: {
+        search: form.search,
+      },
+    })
+    customers.value = result.data.data as Customer[]
+  } catch (error) {
+    const err = error as AxiosError
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const destroyCustomerByCustomerId = async (customerId: number): Promise<void> => {
   try {
     isLoadingButton.value = true
     const result: AxiosResponse<FetchCustomer> = await api.delete(`customer/${customerId}`)
@@ -51,7 +88,13 @@ const destroyCustomerByCustomerId = async (customerId: number) => {
     customers.value = customers.value.filter((customer) => customer.id !== customerId)
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoadingButton.value = false
   }
@@ -71,6 +114,19 @@ const destroyCustomerByCustomerId = async (customerId: number) => {
         </div>
       </div>
     </template>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
+        <form @submit.prevent="search" class="grid grid-cols-2 gap-2">
+          <div>
+            <TextInput placeholder="cari keyword" v-model="form.search" class="w-full" />
+          </div>
+          <div>
+            <PrimaryButton class="my-1" type="submit">search</PrimaryButton>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
