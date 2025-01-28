@@ -12,6 +12,9 @@ export interface UserWithRole {
   updated_at: Date
   role: Role
 }
+export interface SearchUserForm {
+  search: string
+}
 export interface UserForm {
   name: string
   email: string
