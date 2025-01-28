@@ -11,10 +11,13 @@ import { Timestamp } from '@/utils/Timestamp'
 import { NumberUtil } from '@/utils/NumberUtil'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 import type { SearchForm, Transaction, TransactionFetch } from '@/interface/TransactionInterface'
+import type { Validation } from '@/interface/GlobalInterface'
+import { ErrorUtil } from '@/utils/ErrorUtil'
 
 const router = useRouter()
 const isLoadingButton: Ref<boolean> = ref(false)
 const isLoading: Ref<boolean> = ref(false)
+const validation: Ref<Validation | null> = ref(null)
 const transactions: Ref<Transaction[]> = ref([])
 const sumTotal: Ref<number> = ref(0)
 const form: SearchForm = reactive({
@@ -29,7 +32,13 @@ onMounted(async () => {
     sumTotal.value = result.data.sum_total
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoading.value = false
   }
@@ -47,7 +56,13 @@ const search = async () => {
     sumTotal.value = result.data.sum_total
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoading.value = false
   }
@@ -55,6 +70,7 @@ const search = async () => {
 
 const destroyTransactionByTransactionId = async (transactionId: number) => {
   try {
+    isLoadingButton.value = true
     const result: AxiosResponse<TransactionFetch> = await api.delete(`transaction/${transactionId}`)
     transactions.value = transactions.value.filter(
       (transaction) => transaction.id !== transactionId,
@@ -62,7 +78,15 @@ const destroyTransactionByTransactionId = async (transactionId: number) => {
     SweetAlertUtil.successAlert(result.data.message)
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
+  } finally {
+    isLoadingButton.value = false
   }
 }
 

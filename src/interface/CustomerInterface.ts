@@ -14,6 +14,10 @@ export interface FetchCustomerCode {
   data: string
 }
 
+export interface SearchCustomerForm {
+  search: string
+}
+
 export interface Customer {
   id: number
   kode: string
