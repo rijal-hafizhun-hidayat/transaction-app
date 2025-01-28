@@ -14,52 +14,10 @@ import { NumberUtil } from '@/utils/NumberUtil'
 import { ErrorUtil } from '@/utils/ErrorUtil'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 import { useRouter } from 'vue-router'
-
-interface Form {
-  no_transaction: string
-  date: Date
-  customer: Customer | string | null
-  name: string
-  phone_number: string
-  items: Item | null
-}
-interface Fetch {
-  message: string
-  data: string | Customer[] | Item[] | Transaction
-}
-interface Item {
-  id: number
-  kode: string
-  nama: string
-  harga: number
-  created_at: Date
-  updated_at: Date
-}
-interface Customer {
-  id: number
-  kode: string
-  nama: string
-  telp: string
-  created_at: Date
-  updated_at: Date
-}
-interface Transaction {
-  kode: string
-  tgl: Date
-  subtotal: number
-  diskon: number
-  ongkir: number
-  total_bayar: number
-  created_at: Date
-  updated_at: Date
-}
-interface Validation {
-  status: number
-  data: {
-    statusCode: number
-    errors: Record<string, string[]>
-  }
-}
+import type { Validation } from '@/interface/GlobalInterface'
+import type { Item, ItemFetch } from '@/interface/ItemInterface'
+import type { Customer, FetchCustomer, FetchCustomerCode } from '@/interface/CustomerInterface'
+import type { TransactionFetch, TransactionForm } from '@/interface/TransactionInterface'
 
 const router = useRouter()
 const validation: Ref<Validation | null> = ref(null)
@@ -80,7 +38,7 @@ const batchTotalPriceItem: Ref<number[]> = ref([])
 const batchItemQuantities: Ref<string[]> = ref([])
 const batchItemDiscount: Ref<string[]> = ref([])
 const batchPriceAfterDiscount: Ref<number[]> = ref([])
-const form: Form = reactive({
+const form: TransactionForm = reactive({
   no_transaction: '',
   date: new Date(),
   customer: '',
@@ -92,7 +50,7 @@ const form: Form = reactive({
 onMounted(async () => {
   try {
     isLoading.value = true
-    const result: AxiosResponse<Fetch> = await api.get('transaction/code')
+    const result: AxiosResponse<TransactionFetch> = await api.get('transaction/code')
     form.no_transaction = result.data.data as string
   } catch (error) {
     const err = error as AxiosError
@@ -103,7 +61,7 @@ onMounted(async () => {
 
   try {
     isLoadingCustomer.value = true
-    const result: AxiosResponse<Fetch> = await api.get('customer')
+    const result: AxiosResponse<FetchCustomer> = await api.get('customer')
     customers.value = result.data.data as Customer[]
   } catch (error) {
     const err = error as AxiosError
@@ -114,7 +72,7 @@ onMounted(async () => {
 
   try {
     isLoadingItem.value = true
-    const result: AxiosResponse<Fetch> = await api.get('item')
+    const result: AxiosResponse<ItemFetch> = await api.get('item')
     items.value = result.data.data as Item[]
     console.log(items.value)
   } catch (error) {
@@ -134,7 +92,7 @@ const nameWithLang = (costumer: Customer | null) => {
 
 const generateCustomerCode = async () => {
   try {
-    const result: AxiosResponse<Fetch> = await api.get('customer/code')
+    const result: AxiosResponse<FetchCustomerCode> = await api.get('customer/code')
     form.customer = result.data.data as string
   } catch (error) {
     const err = error as AxiosError
@@ -270,7 +228,7 @@ const send = async () => {
 
   try {
     isLoading.value = true
-    const result: AxiosResponse<Fetch> = await api.post('transaction', {
+    const result: AxiosResponse<TransactionFetch> = await api.post('transaction', {
       no_transaction: form.no_transaction,
       items: selectedItems.value,
       date: form.date,

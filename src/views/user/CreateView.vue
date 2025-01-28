@@ -11,45 +11,16 @@ import api from '@/plugin/api'
 import { useRouter } from 'vue-router'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 import { ErrorUtil } from '@/utils/ErrorUtil'
-
-interface Form {
-  name: string
-  email: string
-  password: string
-  role: Role | null
-}
-interface Fetch {
-  message: string
-  data: Role[] | UserWithRole
-}
-interface Role {
-  id: number
-  name: string
-  created_at: Date
-  updated_at: Date
-}
-interface UserWithRole {
-  id: number
-  name: string
-  email: string
-  created_at: Date
-  updated_at: Date
-  role: Role
-}
-interface Validation {
-  status: number
-  data: {
-    statusCode: number
-    errors: Record<string, string[]>
-  }
-}
+import type { Validation } from '@/interface/GlobalInterface'
+import type { UserFetch, UserForm } from '@/interface/UserInterface'
+import type { FetchRole, Role } from '@/interface/RoleInterface'
 
 const router = useRouter()
 const validation: Ref<Validation | null> = ref(null)
 const isLoadingRoles: Ref<boolean> = ref(false)
 const roles: Ref<Role[]> = ref([])
 const isLoading: Ref<boolean> = ref(false)
-const form: Form = reactive({
+const form: UserForm = reactive({
   name: '',
   email: '',
   password: '',
@@ -59,7 +30,7 @@ const form: Form = reactive({
 onMounted(async () => {
   try {
     isLoadingRoles.value = true
-    const result: AxiosResponse<Fetch> = await api.get('role')
+    const result: AxiosResponse<FetchRole> = await api.get('role')
     roles.value = result.data.data as Role[]
   } catch (error) {
     const err = error as AxiosError
@@ -72,7 +43,7 @@ onMounted(async () => {
 const send = async () => {
   try {
     isLoading.value = true
-    const result: AxiosResponse<Fetch> = await api.post('user', {
+    const result: AxiosResponse<UserFetch> = await api.post('user', {
       name: form.name,
       email: form.email,
       password: form.password,
