@@ -2,15 +2,19 @@
 import DashboardLayout from '@/layout/DashboardLayout.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import DangerButton from '@/components/base/DangerButton.vue'
+import TextInput from '@/components/base/TextInput.vue'
 import { useRouter } from 'vue-router'
-import { onMounted, ref, type Ref } from 'vue'
+import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
 import api from '@/plugin/api'
 import { Timestamp } from '@/utils/Timestamp'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
-import type { UserFetch, UserWithRole } from '@/interface/UserInterface'
+import type { SearchUserForm, UserFetch, UserWithRole } from '@/interface/UserInterface'
+import type { Validation } from '@/interface/GlobalInterface'
+import { ErrorUtil } from '@/utils/ErrorUtil'
 
 const router = useRouter()
+const validation: Ref<Validation | null> = ref(null)
 const isLoading: Ref<boolean> = ref(false)
 const isLoadingButton: Ref<boolean> = ref(false)
 const users: Ref<UserWithRole[]> = ref([])
@@ -22,11 +26,44 @@ onMounted(async () => {
     users.value = result.data.data as UserWithRole[]
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoading.value = false
   }
 })
+
+const form: SearchUserForm = reactive({
+  search: '',
+})
+
+const search = async (): Promise<void> => {
+  try {
+    isLoading.value = true
+    const result: AxiosResponse<UserFetch> = await api.get('user', {
+      params: {
+        search: form.search,
+      },
+    })
+    users.value = result.data.data as UserWithRole[]
+  } catch (error) {
+    const err = error as AxiosError
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const destroyUserByUserId = async (userId: number) => {
   try {
@@ -69,6 +106,19 @@ const toUserCreateView = () => {
         </div>
       </div>
     </template>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
+        <form @submit.prevent="search" class="grid grid-cols-2 gap-2">
+          <div>
+            <TextInput placeholder="cari keyword" v-model="form.search" class="w-full" />
+          </div>
+          <div>
+            <PrimaryButton class="my-1" type="submit">search</PrimaryButton>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
