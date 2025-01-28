@@ -13,6 +13,9 @@ import UserShowView from '@/views/user/ShowView.vue'
 import RoleIndexView from '@/views/role/IndexView.vue'
 import RoleCreateView from '@/views/role/CreateView.vue'
 import RoleShowView from '@/views/role/ShowView.vue'
+import ItemIndexView from '@/views/item/IndexView.vue'
+import ItemCreateView from '@/views/item/CreateView.vue'
+import ItemShowView from '@/views/item/ShowView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 
@@ -28,6 +31,30 @@ const router = createRouter({
           component: LoginIndexView,
         },
       ],
+    },
+    {
+      path: '/item',
+      children: [
+        {
+          path: '',
+          name: 'item.index',
+          component: ItemIndexView,
+        },
+        {
+          path: 'create',
+          name: 'item.create',
+          component: ItemCreateView,
+        },
+        {
+          path: ':itemId',
+          name: 'item.show',
+          component: ItemShowView,
+        },
+      ],
+      meta: {
+        requiresAuth: true,
+        requiresRoles: ['admin', 'teller'],
+      },
     },
     {
       path: '/role',
