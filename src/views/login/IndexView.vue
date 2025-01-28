@@ -62,7 +62,7 @@ const send = async () => {
           :message="validation.data.errors.password[0]"
         />
       </div>
-      <div class="flex justify-between">
+      <div class="flex justify-end">
         <div>
           <PrimaryButton :disabled="isLoading" type="submit">login</PrimaryButton>
         </div>
