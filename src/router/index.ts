@@ -6,6 +6,9 @@ import TransactionShowView from '@/views/transaction/ShowView.vue'
 import LoginIndexView from '@/views/login/IndexView.vue'
 import UserIndexView from '@/views/user/IndexView.vue'
 import UserCreateView from '@/views/user/CreateView.vue'
+import CustomerIndexView from '@/views/customer/IndexView.vue'
+import CustomerCreateView from '@/views/customer/CreateView.vue'
+import CustomerShowView from '@/views/customer/ShowView.vue'
 import UserShowView from '@/views/user/ShowView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
@@ -22,6 +25,30 @@ const router = createRouter({
           component: LoginIndexView,
         },
       ],
+    },
+    {
+      path: '/customer',
+      children: [
+        {
+          path: '',
+          name: 'customer.index',
+          component: CustomerIndexView,
+        },
+        {
+          path: 'create',
+          name: 'customer.create',
+          component: CustomerCreateView,
+        },
+        {
+          path: ':customerId',
+          name: 'customer.show',
+          component: CustomerShowView,
+        },
+      ],
+      meta: {
+        requiresAuth: true,
+        requiresRoles: ['admin'],
+      },
     },
     {
       path: '/user',
@@ -42,6 +69,10 @@ const router = createRouter({
           component: UserShowView,
         },
       ],
+      meta: {
+        requiresAuth: true,
+        requiresRoles: ['admin'],
+      },
     },
     {
       path: '/transaction',
@@ -64,7 +95,7 @@ const router = createRouter({
       ],
       meta: {
         requiresAuth: true,
-        requiresRoles: ['admin'],
+        requiresRoles: ['admin', 'teller'],
       },
     },
   ],
