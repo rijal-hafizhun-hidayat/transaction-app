@@ -4,7 +4,9 @@ import InputLabel from '@/components/base/InputLabel.vue'
 import DateInput from '@/components/base/DateInput.vue'
 import TextInput from '@/components/base/TextInput.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
+import AlertForm from '@/components/base/AlertForm.vue'
 import DangerButton from '@/components/base/DangerButton.vue'
+import PointerRequired from '@/components/base/PointerRequired.vue'
 import InputError from '@/components/base/InputError.vue'
 import Multiselect from 'vue-multiselect'
 import { computed, onMounted, reactive, ref, type Ref } from 'vue'
@@ -14,78 +16,14 @@ import { NumberUtil } from '@/utils/NumberUtil'
 import { ErrorUtil } from '@/utils/ErrorUtil'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
 import { useRoute, useRouter } from 'vue-router'
-
-interface Form {
-  no_transaction: string
-  date: Date
-  customer: Customer | string | null
-  name: string
-  phone_number: string
-  items: Item | null
-}
-interface Fetch {
-  message: string
-  data: string | Customer[] | Item[] | Transaction | TransactionWithSaleDateAndCustomerAndItem
-}
-interface TransactionWithSaleDateAndCustomerAndItem {
-  id: number
-  kode: string
-  tgl: Date
-  customer_id: number
-  subtotal: number
-  diskon: number
-  ongkir: number
-  total_bayar: number
-  created_at: Date
-  updated_at: Date
-  sales_det: SalesDetWithItem[]
-  customer: Customer
-}
-interface SalesDetWithItem {
-  id: number
-  t_sales_id: number
-  m_barang_id: number
-  harga_bandrol: number
-  qty: number
-  diskon_pct: number
-  diskon_nilai: number
-  harga_diskon: number
-  total: number
-  item: Item
-}
-interface Item {
-  id: number
-  kode: string
-  nama: string
-  harga: number
-  created_at: Date
-  updated_at: Date
-}
-interface Customer {
-  id: number
-  kode: string
-  nama: string
-  telp: string
-  created_at: Date
-  updated_at: Date
-}
-interface Transaction {
-  kode: string
-  tgl: Date
-  subtotal: number
-  diskon: number
-  ongkir: number
-  total_bayar: number
-  created_at: Date
-  updated_at: Date
-}
-interface Validation {
-  status: number
-  data: {
-    statusCode: number
-    errors: Record<string, string[]>
-  }
-}
+import type { Validation } from '@/interface/GlobalInterface'
+import type { Item, ItemFetch } from '@/interface/ItemInterface'
+import type { Customer, FetchCustomer, FetchCustomerCode } from '@/interface/CustomerInterface'
+import type {
+  TransactionFetch,
+  TransactionForm,
+  TransactionWithSaleDateAndCustomerAndItem,
+} from '@/interface/TransactionInterface'
 
 const route = useRoute()
 const router = useRouter()
@@ -108,7 +46,7 @@ const batchTotalPriceItem: Ref<number[]> = ref([])
 const batchItemQuantities: Ref<number[]> = ref([])
 const batchItemDiscount: Ref<number[]> = ref([])
 const batchPriceAfterDiscount: Ref<number[]> = ref([])
-const form: Form = reactive({
+const form: TransactionForm = reactive({
   no_transaction: '',
   date: new Date(),
   customer: '',
@@ -119,30 +57,45 @@ const form: Form = reactive({
 
 onMounted(async (): Promise<void> => {
   try {
+    isLoading.value = true
     isLoadingCustomer.value = true
-    const result: AxiosResponse<Fetch> = await api.get('customer')
+    const result: AxiosResponse<FetchCustomer> = await api.get('customer')
     customers.value = result.data.data as Customer[]
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoadingCustomer.value = false
   }
 
   try {
     isLoadingItem.value = true
-    const result: AxiosResponse<Fetch> = await api.get('item')
+    const result: AxiosResponse<ItemFetch> = await api.get('item')
     items.value = result.data.data as Item[]
     console.log(items.value)
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoadingItem.value = false
   }
 
   try {
-    const result: AxiosResponse<Fetch> = await api.get(`transaction/${route.params.transactionId}`)
+    const result: AxiosResponse<TransactionFetch> = await api.get(
+      `transaction/${route.params.transactionId}`,
+    )
     const transaction: TransactionWithSaleDateAndCustomerAndItem = result.data
       .data as TransactionWithSaleDateAndCustomerAndItem
     form.no_transaction = transaction.kode
@@ -154,7 +107,15 @@ onMounted(async (): Promise<void> => {
     fetchSelectedItems(transaction)
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
+  } finally {
+    isLoading.value = false
   }
 })
 
@@ -181,7 +142,6 @@ const nameWithLang = (costumer: Customer | null) => {
 }
 
 const calculateTotalPriceItemByQty = (index: number): void => {
-  //console.log(index)
   const total = batchItemQuantities.value[index] * batchPriceAfterDiscount.value[index]
   batchTotalPriceItem.value[index] = total
   calculateSubTotal()
@@ -223,7 +183,7 @@ const calculateTotalPrice = (): void => {
 
 const generateCustomerCode = async () => {
   try {
-    const result: AxiosResponse<Fetch> = await api.get('customer/code')
+    const result: AxiosResponse<FetchCustomerCode> = await api.get('customer/code')
     form.customer = result.data.data as string
   } catch (error) {
     const err = error as AxiosError
@@ -300,7 +260,7 @@ const parseBatchItemDiscountStringToInt = computed(() => {
 const send = async (): Promise<void> => {
   try {
     isLoading.value = true
-    const result: AxiosResponse<Fetch> = await api.put(
+    const result: AxiosResponse<TransactionFetch> = await api.put(
       `transaction/${route.params.transactionId}`,
       {
         no_transaction: form.no_transaction,
@@ -349,6 +309,7 @@ const send = async (): Promise<void> => {
         </div>
       </div>
     </template>
+    <AlertForm />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
         <form @submit.prevent="send" class="space-y-4">
@@ -362,7 +323,7 @@ const send = async (): Promise<void> => {
               </div>
               <div class="space-y-4">
                 <div>
-                  <InputLabel>no</InputLabel>
+                  <InputLabel>no <PointerRequired /></InputLabel>
                   <TextInput
                     type="text"
                     :disabled="true"
@@ -379,7 +340,7 @@ const send = async (): Promise<void> => {
                   />
                 </div>
                 <div>
-                  <InputLabel>Tanggal</InputLabel>
+                  <InputLabel>Tanggal <PointerRequired /></InputLabel>
                   <DateInput class="mt-1 block w-full" v-model="form.date" />
                   <InputError
                     v-if="validation && validation.status === 400 && validation.data.errors.date"
@@ -397,7 +358,7 @@ const send = async (): Promise<void> => {
               </div>
               <div class="space-y-4">
                 <div>
-                  <InputLabel>kode</InputLabel>
+                  <InputLabel>kode <PointerRequired /></InputLabel>
                   <div class="flex flex-col sm:flex-row space-x-3">
                     <div class="w-full">
                       <Multiselect
@@ -440,7 +401,7 @@ const send = async (): Promise<void> => {
                   </div>
                 </div>
                 <div>
-                  <InputLabel>nama</InputLabel>
+                  <InputLabel>nama <PointerRequired /></InputLabel>
                   <TextInput
                     :disabled="!isNewCustomer"
                     class="mt-1 block w-full"
@@ -452,7 +413,7 @@ const send = async (): Promise<void> => {
                   />
                 </div>
                 <div>
-                  <InputLabel>Telp</InputLabel>
+                  <InputLabel>Telp <PointerRequired /></InputLabel>
                   <TextInput
                     :disabled="!isNewCustomer"
                     class="mt-1 block w-full"
@@ -470,7 +431,7 @@ const send = async (): Promise<void> => {
             <div>
               <div class="space-y-3">
                 <div>
-                  <h1 class="font-bold">Barang</h1>
+                  <h1 class="font-bold">Barang <PointerRequired /></h1>
                 </div>
                 <div>
                   <hr />
