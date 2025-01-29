@@ -13,12 +13,81 @@ import api from '@/plugin/api'
 import { NumberUtil } from '@/utils/NumberUtil'
 import { ErrorUtil } from '@/utils/ErrorUtil'
 import { SweetAlertUtil } from '@/utils/SweetAlertUtil'
-import { useRouter } from 'vue-router'
-import type { Validation } from '@/interface/GlobalInterface'
-import type { Item, ItemFetch } from '@/interface/ItemInterface'
-import type { Customer, FetchCustomer, FetchCustomerCode } from '@/interface/CustomerInterface'
-import type { TransactionFetch, TransactionForm } from '@/interface/TransactionInterface'
+import { useRoute, useRouter } from 'vue-router'
 
+interface Form {
+  no_transaction: string
+  date: Date
+  customer: Customer | string | null
+  name: string
+  phone_number: string
+  items: Item | null
+}
+interface Fetch {
+  message: string
+  data: string | Customer[] | Item[] | Transaction | TransactionWithSaleDateAndCustomerAndItem
+}
+interface TransactionWithSaleDateAndCustomerAndItem {
+  id: number
+  kode: string
+  tgl: Date
+  customer_id: number
+  subtotal: number
+  diskon: number
+  ongkir: number
+  total_bayar: number
+  created_at: Date
+  updated_at: Date
+  sales_det: SalesDetWithItem[]
+  customer: Customer
+}
+interface SalesDetWithItem {
+  id: number
+  t_sales_id: number
+  m_barang_id: number
+  harga_bandrol: number
+  qty: number
+  diskon_pct: number
+  diskon_nilai: number
+  harga_diskon: number
+  total: number
+  item: Item
+}
+interface Item {
+  id: number
+  kode: string
+  nama: string
+  harga: number
+  created_at: Date
+  updated_at: Date
+}
+interface Customer {
+  id: number
+  kode: string
+  nama: string
+  telp: string
+  created_at: Date
+  updated_at: Date
+}
+interface Transaction {
+  kode: string
+  tgl: Date
+  subtotal: number
+  diskon: number
+  ongkir: number
+  total_bayar: number
+  created_at: Date
+  updated_at: Date
+}
+interface Validation {
+  status: number
+  data: {
+    statusCode: number
+    errors: Record<string, string[]>
+  }
+}
+
+const route = useRoute()
 const router = useRouter()
 const validation: Ref<Validation | null> = ref(null)
 const items: Ref<Item[]> = ref([])
@@ -28,17 +97,18 @@ const isLoadingCustomer: Ref<boolean> = ref(false)
 const isLoadingItem: Ref<boolean> = ref(false)
 const customers: Ref<Customer[]> = ref([])
 const isLoading: Ref<boolean> = ref(false)
+const selectedCustomer: Ref<Customer | null> = ref(null)
 const selectedItems: Ref<Item[]> = ref([])
-const discountTotalPrice: Ref<string> = ref('')
-const shippingCost: Ref<string> = ref('')
+const discountTotalPrice: Ref<number> = ref(0)
+const shippingCost: Ref<number> = ref(0)
 const subTotalPrice: Ref<number> = ref(0)
 const totalPrice: Ref<number> = ref(0)
 const batchDiscountPrice: Ref<number[]> = ref([])
 const batchTotalPriceItem: Ref<number[]> = ref([])
-const batchItemQuantities: Ref<string[]> = ref([])
-const batchItemDiscount: Ref<string[]> = ref([])
+const batchItemQuantities: Ref<number[]> = ref([])
+const batchItemDiscount: Ref<number[]> = ref([])
 const batchPriceAfterDiscount: Ref<number[]> = ref([])
-const form: TransactionForm = reactive({
+const form: Form = reactive({
   no_transaction: '',
   date: new Date(),
   customer: '',
@@ -49,19 +119,8 @@ const form: TransactionForm = reactive({
 
 onMounted(async () => {
   try {
-    isLoading.value = true
-    const result: AxiosResponse<TransactionFetch> = await api.get('transaction/code')
-    form.no_transaction = result.data.data as string
-  } catch (error) {
-    const err = error as AxiosError
-    console.log(err)
-  } finally {
-    isLoading.value = false
-  }
-
-  try {
     isLoadingCustomer.value = true
-    const result: AxiosResponse<FetchCustomer> = await api.get('customer')
+    const result: AxiosResponse<Fetch> = await api.get('customer')
     customers.value = result.data.data as Customer[]
   } catch (error) {
     const err = error as AxiosError
@@ -72,7 +131,7 @@ onMounted(async () => {
 
   try {
     isLoadingItem.value = true
-    const result: AxiosResponse<ItemFetch> = await api.get('item')
+    const result: AxiosResponse<Fetch> = await api.get('item')
     items.value = result.data.data as Item[]
     console.log(items.value)
   } catch (error) {
@@ -81,7 +140,38 @@ onMounted(async () => {
   } finally {
     isLoadingItem.value = false
   }
+
+  try {
+    const result: AxiosResponse<Fetch> = await api.get(`transaction/${route.params.transactionId}`)
+    const transaction: TransactionWithSaleDateAndCustomerAndItem = result.data
+      .data as TransactionWithSaleDateAndCustomerAndItem
+    form.no_transaction = transaction.kode
+    form.date = new Date(transaction.tgl)
+    form.customer = transaction.customer as Customer
+    selectedCustomer.value = transaction.customer as Customer
+    form.name = transaction.customer.nama
+    form.phone_number = transaction.customer.telp
+    fetchSelectedItems(transaction)
+  } catch (error) {
+    const err = error as AxiosError
+    console.log(err)
+  }
 })
+
+const fetchSelectedItems = (transaction: TransactionWithSaleDateAndCustomerAndItem) => {
+  for (let index = 0; index < transaction.sales_det.length; index++) {
+    selectedItems.value.push(transaction.sales_det[index].item)
+    batchDiscountPrice.value.push(transaction.sales_det[index].diskon_nilai)
+    batchPriceAfterDiscount.value.push(transaction.sales_det[index].harga_diskon)
+    batchTotalPriceItem.value.push(transaction.sales_det[index].total)
+    batchItemQuantities.value.push(transaction.sales_det[index].qty)
+    batchItemDiscount.value.push(transaction.sales_det[index].diskon_pct)
+    subTotalPrice.value = transaction.subtotal
+    totalPrice.value = transaction.total_bayar
+    discountTotalPrice.value = transaction.diskon
+    shippingCost.value = transaction.ongkir
+  }
+}
 
 const nameWithLang = (costumer: Customer | null) => {
   if (!costumer || !costumer.nama || !costumer.kode) {
@@ -90,9 +180,50 @@ const nameWithLang = (costumer: Customer | null) => {
   return `${costumer.nama} - ${costumer.kode}`
 }
 
+const calculateTotalPriceItemByQty = (index: number): void => {
+  //console.log(index)
+  const total = batchItemQuantities.value[index] * batchPriceAfterDiscount.value[index]
+  batchTotalPriceItem.value[index] = total
+  calculateSubTotal()
+  calculateTotalPrice()
+}
+
+const calculateDiscountPriceByDiscountPct = (index: number): void => {
+  const discountPrice = (batchItemDiscount.value[index] / 100) * selectedItems.value[index].harga
+
+  batchDiscountPrice.value[index] = discountPrice
+
+  batchPriceAfterDiscount.value[index] = selectedItems.value[index].harga - discountPrice
+  batchTotalPriceItem.value[index] =
+    batchItemQuantities.value[index] * batchPriceAfterDiscount.value[index]
+
+  calculateSubTotal()
+  calculateTotalPrice()
+}
+
+const calculateSubTotal = (): void => {
+  subTotalPrice.value = 0
+  for (let index = 0; index < batchTotalPriceItem.value.length; index++) {
+    subTotalPrice.value = subTotalPrice.value + batchTotalPriceItem.value[index]
+  }
+
+  totalPrice.value = subTotalPrice.value
+}
+
+const calculateTotalPrice = (): void => {
+  if (isNaN(shippingCost.value)) {
+    shippingCost.value = 0
+  }
+  if (isNaN(discountTotalPrice.value)) {
+    discountTotalPrice.value = 0
+  }
+  totalPrice.value =
+    Number(subTotalPrice.value) + Number(shippingCost.value) - Number(discountTotalPrice.value)
+}
+
 const generateCustomerCode = async () => {
   try {
-    const result: AxiosResponse<FetchCustomerCode> = await api.get('customer/code')
+    const result: AxiosResponse<Fetch> = await api.get('customer/code')
     form.customer = result.data.data as string
   } catch (error) {
     const err = error as AxiosError
@@ -106,13 +237,15 @@ const toogleIsNewCostumer = async (): Promise<void> => {
   if (isNewCustomer.value) {
     textButtonIsNewCustomer.value = 'sudah ada costumer'
     await generateCustomerCode()
+    form.name = ''
+    form.phone_number = ''
   } else {
     textButtonIsNewCustomer.value = 'buat costumer baru'
-    form.customer = null
+    const customer = selectedCustomer.value as Customer
+    form.customer = customer
+    form.name = customer.nama
+    form.phone_number = customer.telp
   }
-
-  form.name = ''
-  form.phone_number = ''
 }
 
 const setFormTelpAndName = (customer: Customer): void => {
@@ -122,17 +255,18 @@ const setFormTelpAndName = (customer: Customer): void => {
 }
 
 const pushSelectedItems = () => {
-  selectedItems.value.push(form.items as Item)
-  batchItemQuantities.value.push('1')
-  batchItemDiscount.value.push('0')
+  const item: Item = form.items as Item
+  selectedItems.value.push(item)
+  batchItemQuantities.value.push(1)
+  batchItemDiscount.value.push(0)
+  batchDiscountPrice.value.push(0)
+  batchPriceAfterDiscount.value.push(item.harga)
+  batchTotalPriceItem.value.push(item.harga)
   console.log(selectedItems.value)
   form.items = null
 }
 
 const destroySelectedItemByItemId = (itemId: number) => {
-  console.log(batchItemQuantities.value)
-  console.log(batchItemDiscount.value)
-
   const index = selectedItems.value.findIndex((item) => item.id === itemId)
 
   if (index !== -1) {
@@ -143,53 +277,9 @@ const destroySelectedItemByItemId = (itemId: number) => {
     batchTotalPriceItem.value.splice(index, 1)
     batchPriceAfterDiscount.value.splice(index, 1)
   }
-}
 
-const calculateDiscountPrice = (index: number): number => {
-  const price = selectedItems.value[index].harga
-  const discount = batchItemDiscount.value[index]
-  console.log(price)
-  console.log(discount)
-  const discountPrice = discount ? price * (parseInt(discount as string) / 100) : 0
-  console.log(discountPrice)
-
-  batchDiscountPrice.value[index] = discountPrice
-
-  return discountPrice
-}
-
-const calculatePriceAfterDiscount = (index: number, price: number): number => {
-  const discount = batchItemDiscount.value[index]
-  const discountPrice = calculateDiscountPrice(index)
-  const priceAfterDiscount = discount ? price - discountPrice : 0
-
-  if (priceAfterDiscount !== 0) {
-    batchPriceAfterDiscount.value[index] = priceAfterDiscount
-    return priceAfterDiscount
-  }
-
-  return priceAfterDiscount
-}
-
-const calculateTotalPriceItem = (index: number, price: number): number => {
-  const quantity = batchItemQuantities.value[index]
-  const discountPrice = calculatePriceAfterDiscount(index, price)
-  const totalPriceItem = quantity ? parseInt(quantity as string) * discountPrice : 0
-
-  if (totalPriceItem !== 0) {
-    batchTotalPriceItem.value[index] = totalPriceItem
-    return totalPriceItem
-  }
-
-  return totalPriceItem
-}
-
-const calculateSubTotal = (): number => {
-  subTotalPrice.value = selectedItems.value.reduce((sum, item, index) => {
-    return sum + calculateTotalPriceItem(index, item.harga)
-  }, 0)
-
-  return subTotalPrice.value
+  calculateSubTotal()
+  calculateTotalPrice()
 }
 
 const customerCode = computed(() => {
@@ -199,18 +289,12 @@ const customerCode = computed(() => {
   return form.customer
 })
 
-const calculateTotalPrice = (discount: string, shippingCost: string): number => {
-  totalPrice.value =
-    subTotalPrice.value - parseInt(discount as string) + parseInt(shippingCost as string)
-  return totalPrice.value ? totalPrice.value : 0
-}
-
 const parseBatchItemQuantitiesToInt = computed(() => {
-  return batchItemQuantities.value.map((quantity) => parseInt(quantity as string))
+  return batchItemQuantities.value.map((quantity) => Number(quantity))
 })
 
 const parseBatchItemDiscountStringToInt = computed(() => {
-  return batchItemDiscount.value.map((itemDiscount) => parseInt(itemDiscount as string))
+  return batchItemDiscount.value.map((itemDiscount) => Number(itemDiscount))
 })
 
 const send = async () => {
@@ -228,24 +312,27 @@ const send = async () => {
 
   try {
     isLoading.value = true
-    const result: AxiosResponse<TransactionFetch> = await api.post('transaction', {
-      no_transaction: form.no_transaction,
-      items: selectedItems.value,
-      date: form.date,
-      customer_code: customerCode.value,
-      subtotal: subTotalPrice.value,
-      discount: parseInt(discountTotalPrice.value),
-      shipping_cost: parseInt(shippingCost.value),
-      total_price: totalPrice.value,
-      qty: parseBatchItemQuantitiesToInt.value,
-      discount_pct: parseBatchItemDiscountStringToInt.value,
-      discount_nominal: batchDiscountPrice.value,
-      discount_price: batchPriceAfterDiscount.value,
-      total: batchTotalPriceItem.value,
-      name: form.name,
-      phone_number: form.phone_number,
-      is_new_costumer: isNewCustomer.value,
-    })
+    const result: AxiosResponse<Fetch> = await api.put(
+      `transaction/${route.params.transactionId}`,
+      {
+        no_transaction: form.no_transaction,
+        items: selectedItems.value,
+        date: form.date,
+        customer_code: customerCode.value,
+        subtotal: subTotalPrice.value,
+        discount: Number(discountTotalPrice.value),
+        shipping_cost: shippingCost.value,
+        total_price: totalPrice.value,
+        qty: parseBatchItemQuantitiesToInt.value,
+        discount_pct: parseBatchItemDiscountStringToInt.value,
+        discount_nominal: batchDiscountPrice.value,
+        discount_price: batchPriceAfterDiscount.value,
+        total: batchTotalPriceItem.value,
+        name: form.name,
+        phone_number: form.phone_number,
+        is_new_costumer: isNewCustomer.value,
+      },
+    )
 
     SweetAlertUtil.successAlert(result.data.message)
     router.push({
@@ -270,7 +357,7 @@ const send = async () => {
     <template #header>
       <div class="flex justify-between">
         <div>
-          <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Transaksi</h2>
+          <h2 class="font-semibold text-xl text-gray-800 leading-tight">Ubah Transaksi</h2>
         </div>
       </div>
     </template>
@@ -342,7 +429,7 @@ const send = async () => {
                         :multiple="false"
                         :taggable="false"
                       ></Multiselect>
-                      <TextInput v-else class="mt-1 w-full" v-model="form.customer" />
+                      <TextInput v-else class="mt-1" v-model="form.customer" />
                       <InputError
                         v-if="
                           validation &&
@@ -450,6 +537,7 @@ const send = async () => {
                         </td>
                         <td class="border-t items-center px-6 py-4">
                           <TextInput
+                            @input="calculateTotalPriceItemByQty(index)"
                             :required="true"
                             class="w-20"
                             type="number"
@@ -461,6 +549,7 @@ const send = async () => {
                         </td>
                         <td class="border-t items-center px-6 py-4">
                           <TextInput
+                            @input="calculateDiscountPriceByDiscountPct(index)"
                             :required="true"
                             type="number"
                             class="w-full"
@@ -468,21 +557,13 @@ const send = async () => {
                           />
                         </td>
                         <td class="border-t items-center px-6 py-4">
-                          {{ NumberUtil.formatRupiah(calculateDiscountPrice(index)) }}
+                          {{ NumberUtil.formatRupiah(batchDiscountPrice[index]) }}
                         </td>
                         <td class="border-t items-center px-6 py-4">
-                          {{
-                            NumberUtil.formatRupiah(
-                              calculatePriceAfterDiscount(index, selectedItem.harga),
-                            )
-                          }}
+                          {{ NumberUtil.formatRupiah(batchPriceAfterDiscount[index]) }}
                         </td>
                         <td class="border-t items-center px-6 py-4">
-                          {{
-                            NumberUtil.formatRupiah(
-                              calculateTotalPriceItem(index, selectedItem.harga),
-                            )
-                          }}
+                          {{ NumberUtil.formatRupiah(batchTotalPriceItem[index]) }}
                         </td>
                         <td class="border-t items-center px-6 py-4 flex justify-start space-x-4">
                           <div>
@@ -510,14 +591,18 @@ const send = async () => {
                       <tr class="text-left">
                         <th>Sub total</th>
                         <th>:</th>
-                        <th>{{ NumberUtil.formatRupiah(calculateSubTotal()) }}</th>
+                        <th>{{ NumberUtil.formatRupiah(subTotalPrice) }}</th>
                       </tr>
                       <tr class="text-left">
                         <th>Diskon</th>
                         <th>:</th>
                         <th>
                           <div>
-                            <TextInput type="number" v-model="discountTotalPrice" />
+                            <TextInput
+                              @input="calculateTotalPrice"
+                              type="number"
+                              v-model="discountTotalPrice"
+                            />
                             <InputError
                               v-if="
                                 validation &&
@@ -534,7 +619,11 @@ const send = async () => {
                         <th>:</th>
                         <th>
                           <div>
-                            <TextInput type="number" v-model="shippingCost" />
+                            <TextInput
+                              type="number"
+                              @input="calculateTotalPrice"
+                              v-model="shippingCost"
+                            />
                             <InputError
                               v-if="
                                 validation &&
@@ -550,11 +639,7 @@ const send = async () => {
                         <th>Total bayar</th>
                         <th>:</th>
                         <th>
-                          {{
-                            NumberUtil.formatRupiah(
-                              calculateTotalPrice(discountTotalPrice, shippingCost),
-                            )
-                          }}
+                          {{ NumberUtil.formatRupiah(totalPrice) }}
                         </th>
                       </tr>
                     </tbody>

@@ -1,9 +1,19 @@
 <script setup lang="ts">
 import ApplicationLogo from '@/components/base/ApplicationLogo.vue'
 import Dropdown from '@/components/base/Dropdown.vue'
+import { useAuthStore } from '@/stores/auth'
 import { ref, type Ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+const authStore = useAuthStore()
 const showingNavigationDropdown: Ref<boolean> = ref(false)
+const logout = async () => {
+  await authStore.logout()
+  router.push({
+    name: 'login.index',
+  })
+}
 </script>
 <template>
   <div>
@@ -20,9 +30,51 @@ const showingNavigationDropdown: Ref<boolean> = ref(false)
                   active-class="border-indigo-700"
                   inactive-class="border-indigo-500"
                   class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out"
+                  :to="{ name: 'dashboard.index' }"
+                >
+                  Dashboard
+                </RouterLink>
+                <RouterLink
+                  active-class="border-indigo-700"
+                  inactive-class="border-indigo-500"
+                  class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out"
                   :to="{ name: 'transaction.index' }"
                 >
-                  Transaction
+                  Transaksi
+                </RouterLink>
+                <RouterLink
+                  v-if="authStore.auth?.role.name === 'admin'"
+                  active-class="border-indigo-700"
+                  inactive-class="border-indigo-500"
+                  class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out"
+                  :to="{ name: 'user.index' }"
+                >
+                  Pengguna
+                </RouterLink>
+                <RouterLink
+                  active-class="border-indigo-700"
+                  inactive-class="border-indigo-500"
+                  class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out"
+                  :to="{ name: 'customer.index' }"
+                >
+                  Pelanggan
+                </RouterLink>
+                <RouterLink
+                  v-if="authStore.auth?.role.name === 'admin'"
+                  active-class="border-indigo-700"
+                  inactive-class="border-indigo-500"
+                  class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out"
+                  :to="{ name: 'role.index' }"
+                >
+                  Role
+                </RouterLink>
+                <RouterLink
+                  active-class="border-indigo-700"
+                  inactive-class="border-indigo-500"
+                  class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out"
+                  :to="{ name: 'item.index' }"
+                >
+                  Barang
                 </RouterLink>
               </div>
             </div>
@@ -36,7 +88,7 @@ const showingNavigationDropdown: Ref<boolean> = ref(false)
                         type="button"
                         class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150"
                       >
-                        {{ 'admin' }}
+                        {{ authStore.auth?.name }}
 
                         <svg
                           class="ml-2 -mr-0.5 h-4 w-4"
@@ -55,11 +107,7 @@ const showingNavigationDropdown: Ref<boolean> = ref(false)
                   </template>
                   <template #content>
                     <a
-                      class="cursor-pointer block w-full px-4 py-2 text-left text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out"
-                    >
-                      Profile
-                    </a>
-                    <a
+                      @click="logout"
                       class="cursor-pointer block w-full px-4 py-2 text-left text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out"
                     >
                       Logout
@@ -110,11 +158,48 @@ const showingNavigationDropdown: Ref<boolean> = ref(false)
         >
           <div class="pt-2 pb-3 space-y-1">
             <RouterLink
+              :to="{ name: 'dashboard.index' }"
+              activeClass="border-indigo-500"
+              exactActiveClass="border-indigo-900"
+              class="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+              >Dashboard</RouterLink
+            >
+            <RouterLink
               :to="{ name: 'transaction.index' }"
               activeClass="border-indigo-500"
               exactActiveClass="border-indigo-900"
               class="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
               >Transaction</RouterLink
+            >
+            <RouterLink
+              v-if="authStore.auth?.role.name === 'admin'"
+              :to="{ name: 'user.index' }"
+              activeClass="border-indigo-500"
+              exactActiveClass="border-indigo-900"
+              class="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+              >Pengguna</RouterLink
+            >
+            <RouterLink
+              :to="{ name: 'customer.index' }"
+              activeClass="border-indigo-500"
+              exactActiveClass="border-indigo-900"
+              class="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+              >Pelanggan</RouterLink
+            >
+            <RouterLink
+              v-if="authStore.auth?.role.name === 'admin'"
+              :to="{ name: 'role.index' }"
+              activeClass="border-indigo-500"
+              exactActiveClass="border-indigo-900"
+              class="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+              >Role</RouterLink
+            >
+            <RouterLink
+              :to="{ name: 'item.index' }"
+              activeClass="border-indigo-500"
+              exactActiveClass="border-indigo-900"
+              class="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+              >Barang</RouterLink
             >
           </div>
 
@@ -122,15 +207,16 @@ const showingNavigationDropdown: Ref<boolean> = ref(false)
           <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4">
               <div class="font-medium text-base text-gray-800">
-                {{ 'admin' }}
+                {{ authStore.auth?.name }}
               </div>
               <div class="font-medium text-sm text-gray-500">
-                {{ 'admin@gmail.com' }}
+                {{ authStore.auth?.email }}
               </div>
             </div>
 
             <div class="mt-3 space-y-1">
               <a
+                @click="logout"
                 class="cursor-pointer block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
                 >Logout</a
               >
