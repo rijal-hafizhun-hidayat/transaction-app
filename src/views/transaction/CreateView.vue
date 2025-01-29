@@ -125,6 +125,12 @@ const generateCustomerCode = async () => {
   }
 }
 
+const parseBatchItemQuantities = computed(() => {
+  return batchItemQuantities.value.map((qty) => {
+    return Number(qty)
+  })
+})
+
 const toogleIsNewCostumer = async (): Promise<void> => {
   isNewCustomer.value = !isNewCustomer.value
 
@@ -234,7 +240,7 @@ const send = async (): Promise<void> => {
       discount: discountTotalPrice.value ? Number(discountTotalPrice.value) : 0,
       shipping_cost: shippingCost.value ? Number(shippingCost.value) : 0,
       total_price: totalPrice.value,
-      qty: batchItemQuantities.value,
+      qty: parseBatchItemQuantities.value,
       discount_pct: batchItemDiscount.value,
       discount_nominal: batchDiscountPrice.value,
       discount_price: batchPriceAfterDiscount.value,
@@ -452,7 +458,7 @@ const send = async (): Promise<void> => {
                             :required="true"
                             class="w-20"
                             type="number"
-                            v-model="batchItemQuantities[index]"
+                            v-model.number="batchItemQuantities[index]"
                           />
                         </td>
                         <td class="border-t items-center px-6 py-4">
@@ -464,7 +470,7 @@ const send = async (): Promise<void> => {
                             :required="true"
                             type="number"
                             class="w-full"
-                            v-model="batchItemDiscount[index]"
+                            v-model.number="batchItemDiscount[index]"
                           />
                         </td>
                         <td class="border-t items-center px-6 py-4">

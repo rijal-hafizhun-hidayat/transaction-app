@@ -226,6 +226,12 @@ const pushSelectedItems = () => {
   form.items = null
 }
 
+const parseBatchDiscountPrice = computed(() => {
+  return batchDiscountPrice.value.map((discount) => {
+    return Math.floor(Number(discount))
+  })
+})
+
 const destroySelectedItemByItemId = (itemId: number) => {
   const index = selectedItems.value.findIndex((item) => item.id === itemId)
 
@@ -269,11 +275,11 @@ const send = async (): Promise<void> => {
         customer_code: customerCode.value,
         subtotal: subTotalPrice.value,
         discount: Number(discountTotalPrice.value),
-        shipping_cost: shippingCost.value,
+        shipping_cost: Number(shippingCost.value),
         total_price: totalPrice.value,
         qty: parseBatchItemQuantitiesToInt.value,
         discount_pct: parseBatchItemDiscountStringToInt.value,
-        discount_nominal: batchDiscountPrice.value,
+        discount_nominal: parseBatchDiscountPrice.value,
         discount_price: batchPriceAfterDiscount.value,
         total: batchTotalPriceItem.value,
         name: form.name,
