@@ -6,7 +6,7 @@ export interface SearchForm {
 }
 export interface TransactionFetch {
   message: string
-  data: Transaction[] | string
+  data: Transaction[] | string | TransactionWithSaleDateAndCustomerAndItem
   sum_total: number
 }
 export interface Transaction {
@@ -35,4 +35,31 @@ export interface TransactionForm {
   name: string
   phone_number: string
   items: Item | null
+}
+
+export interface TransactionWithSaleDateAndCustomerAndItem {
+  id: number
+  kode: string
+  tgl: Date
+  customer_id: number
+  subtotal: number
+  diskon: number
+  ongkir: number
+  total_bayar: number
+  created_at: Date
+  updated_at: Date
+  sales_det: SalesDetWithItem[]
+  customer: Customer
+}
+export interface SalesDetWithItem {
+  id: number
+  t_sales_id: number
+  m_barang_id: number
+  harga_bandrol: number
+  qty: number
+  diskon_pct: number
+  diskon_nilai: number
+  harga_diskon: number
+  total: number
+  item: Item
 }
