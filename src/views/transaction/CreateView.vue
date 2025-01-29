@@ -4,8 +4,10 @@ import InputLabel from '@/components/base/InputLabel.vue'
 import DateInput from '@/components/base/DateInput.vue'
 import TextInput from '@/components/base/TextInput.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
+import PointerRequired from '@/components/base/PointerRequired.vue'
 import DangerButton from '@/components/base/DangerButton.vue'
 import InputError from '@/components/base/InputError.vue'
+import AlertForm from '@/components/base/AlertForm.vue'
 import Multiselect from 'vue-multiselect'
 import { computed, onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
@@ -54,7 +56,13 @@ onMounted(async () => {
     form.no_transaction = result.data.data as string
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoading.value = false
   }
@@ -65,7 +73,13 @@ onMounted(async () => {
     customers.value = result.data.data as Customer[]
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoadingCustomer.value = false
   }
@@ -74,10 +88,15 @@ onMounted(async () => {
     isLoadingItem.value = true
     const result: AxiosResponse<ItemFetch> = await api.get('item')
     items.value = result.data.data as Item[]
-    console.log(items.value)
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   } finally {
     isLoadingItem.value = false
   }
@@ -96,7 +115,13 @@ const generateCustomerCode = async () => {
     form.customer = result.data.data as string
   } catch (error) {
     const err = error as AxiosError
-    console.log(err)
+    if (err.response?.status === 400) {
+      validation.value = err.response as Validation
+    } else if (err.response?.status === 404) {
+      validation.value = err.response as Validation
+      const errors = ErrorUtil.formatErrorMessage(validation.value.data.errors)
+      SweetAlertUtil.errorAlert(errors)
+    }
   }
 }
 
@@ -136,9 +161,6 @@ const pushSelectedItems = () => {
 }
 
 const destroySelectedItemByItemId = (itemId: number) => {
-  console.log(batchItemQuantities.value)
-  console.log(batchItemDiscount.value)
-
   const index = selectedItems.value.findIndex((item) => item.id === itemId)
 
   if (index !== -1) {
@@ -154,7 +176,6 @@ const destroySelectedItemByItemId = (itemId: number) => {
 }
 
 const calculateTotalPriceItemByQty = (index: number): void => {
-  //console.log(index)
   const total = batchItemQuantities.value[index] * batchPriceAfterDiscount.value[index]
   batchTotalPriceItem.value[index] = total
   calculateSubTotal()
@@ -250,6 +271,7 @@ const send = async (): Promise<void> => {
         </div>
       </div>
     </template>
+    <AlertForm />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
         <form @submit.prevent="send" class="space-y-4">
@@ -263,7 +285,7 @@ const send = async (): Promise<void> => {
               </div>
               <div class="space-y-4">
                 <div>
-                  <InputLabel>no</InputLabel>
+                  <InputLabel>no <PointerRequired /></InputLabel>
                   <TextInput
                     type="text"
                     :disabled="true"
@@ -280,7 +302,7 @@ const send = async (): Promise<void> => {
                   />
                 </div>
                 <div>
-                  <InputLabel>Tanggal</InputLabel>
+                  <InputLabel>Tanggal <PointerRequired /></InputLabel>
                   <DateInput class="mt-1 block w-full" v-model="form.date" />
                   <InputError
                     v-if="validation && validation.status === 400 && validation.data.errors.date"
@@ -298,7 +320,7 @@ const send = async (): Promise<void> => {
               </div>
               <div class="space-y-4">
                 <div>
-                  <InputLabel>kode</InputLabel>
+                  <InputLabel>kode <PointerRequired /></InputLabel>
                   <div class="flex flex-col sm:flex-row space-x-3">
                     <div class="w-full">
                       <Multiselect
@@ -341,7 +363,7 @@ const send = async (): Promise<void> => {
                   </div>
                 </div>
                 <div>
-                  <InputLabel>nama</InputLabel>
+                  <InputLabel>nama <PointerRequired /></InputLabel>
                   <TextInput
                     :disabled="!isNewCustomer"
                     class="mt-1 block w-full"
@@ -353,7 +375,7 @@ const send = async (): Promise<void> => {
                   />
                 </div>
                 <div>
-                  <InputLabel>Telp</InputLabel>
+                  <InputLabel>Telp <PointerRequired /></InputLabel>
                   <TextInput
                     :disabled="!isNewCustomer"
                     class="mt-1 block w-full"
@@ -371,7 +393,7 @@ const send = async (): Promise<void> => {
             <div>
               <div class="space-y-3">
                 <div>
-                  <h1 class="font-bold">Barang</h1>
+                  <h1 class="font-bold">Barang <PointerRequired /></h1>
                 </div>
                 <div>
                   <hr />
