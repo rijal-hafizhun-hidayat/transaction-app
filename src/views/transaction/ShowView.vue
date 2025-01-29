@@ -117,7 +117,7 @@ const form: Form = reactive({
   items: null,
 })
 
-onMounted(async () => {
+onMounted(async (): Promise<void> => {
   try {
     isLoadingCustomer.value = true
     const result: AxiosResponse<Fetch> = await api.get('customer')
@@ -158,7 +158,7 @@ onMounted(async () => {
   }
 })
 
-const fetchSelectedItems = (transaction: TransactionWithSaleDateAndCustomerAndItem) => {
+const fetchSelectedItems = (transaction: TransactionWithSaleDateAndCustomerAndItem): void => {
   for (let index = 0; index < transaction.sales_det.length; index++) {
     selectedItems.value.push(transaction.sales_det[index].item)
     batchDiscountPrice.value.push(transaction.sales_det[index].diskon_nilai)
@@ -297,19 +297,7 @@ const parseBatchItemDiscountStringToInt = computed(() => {
   return batchItemDiscount.value.map((itemDiscount) => Number(itemDiscount))
 })
 
-const send = async () => {
-  console.log(form)
-  console.log(selectedItems.value)
-  console.log(batchItemQuantities.value)
-  console.log(batchItemDiscount.value)
-  console.log(batchDiscountPrice.value)
-  console.log(batchTotalPriceItem.value)
-  console.log(batchPriceAfterDiscount.value)
-  console.log(discountTotalPrice.value)
-  console.log(shippingCost.value)
-  console.log(subTotalPrice.value)
-  console.log(totalPrice.value)
-
+const send = async (): Promise<void> => {
   try {
     isLoading.value = true
     const result: AxiosResponse<Fetch> = await api.put(

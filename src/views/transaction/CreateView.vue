@@ -29,14 +29,14 @@ const isLoadingItem: Ref<boolean> = ref(false)
 const customers: Ref<Customer[]> = ref([])
 const isLoading: Ref<boolean> = ref(false)
 const selectedItems: Ref<Item[]> = ref([])
-const discountTotalPrice: Ref<string> = ref('')
-const shippingCost: Ref<string> = ref('')
+const discountTotalPrice: Ref<number> = ref(0)
+const shippingCost: Ref<number> = ref(0)
 const subTotalPrice: Ref<number> = ref(0)
 const totalPrice: Ref<number> = ref(0)
 const batchDiscountPrice: Ref<number[]> = ref([])
 const batchTotalPriceItem: Ref<number[]> = ref([])
-const batchItemQuantities: Ref<string[]> = ref([])
-const batchItemDiscount: Ref<string[]> = ref([])
+const batchItemQuantities: Ref<number[]> = ref([])
+const batchItemDiscount: Ref<number[]> = ref([])
 const batchPriceAfterDiscount: Ref<number[]> = ref([])
 const form: TransactionForm = reactive({
   no_transaction: '',
@@ -122,9 +122,15 @@ const setFormTelpAndName = (customer: Customer): void => {
 }
 
 const pushSelectedItems = () => {
+  const item: Item = form.items as Item
   selectedItems.value.push(form.items as Item)
-  batchItemQuantities.value.push('1')
-  batchItemDiscount.value.push('0')
+  batchItemQuantities.value.push(1)
+  batchItemDiscount.value.push(0)
+  batchDiscountPrice.value.push(0)
+  batchPriceAfterDiscount.value.push(0)
+  batchTotalPriceItem.value.push(item.harga)
+  subTotalPrice.value = subTotalPrice.value + item.harga
+  totalPrice.value = totalPrice.value + item.harga
   console.log(selectedItems.value)
   form.items = null
 }
@@ -136,6 +142,8 @@ const destroySelectedItemByItemId = (itemId: number) => {
   const index = selectedItems.value.findIndex((item) => item.id === itemId)
 
   if (index !== -1) {
+    subTotalPrice.value = subTotalPrice.value - selectedItems.value[index].harga
+    totalPrice.value = totalPrice.value - selectedItems.value[index].harga
     selectedItems.value.splice(index, 1)
     batchItemQuantities.value.splice(index, 1)
     batchItemDiscount.value.splice(index, 1)
@@ -145,51 +153,45 @@ const destroySelectedItemByItemId = (itemId: number) => {
   }
 }
 
-const calculateDiscountPrice = (index: number): number => {
-  const price = selectedItems.value[index].harga
-  const discount = batchItemDiscount.value[index]
-  console.log(price)
-  console.log(discount)
-  const discountPrice = discount ? price * (parseInt(discount as string) / 100) : 0
-  console.log(discountPrice)
+const calculateTotalPriceItemByQty = (index: number): void => {
+  //console.log(index)
+  const total = batchItemQuantities.value[index] * batchPriceAfterDiscount.value[index]
+  batchTotalPriceItem.value[index] = total
+  calculateSubTotal()
+  calculateTotalPrice()
+}
+
+const calculateDiscountPriceByDiscountPct = (index: number): void => {
+  const discountPrice = (batchItemDiscount.value[index] / 100) * selectedItems.value[index].harga
 
   batchDiscountPrice.value[index] = discountPrice
 
-  return discountPrice
+  batchPriceAfterDiscount.value[index] = selectedItems.value[index].harga - discountPrice
+  batchTotalPriceItem.value[index] =
+    batchItemQuantities.value[index] * batchPriceAfterDiscount.value[index]
+
+  calculateSubTotal()
+  calculateTotalPrice()
 }
 
-const calculatePriceAfterDiscount = (index: number, price: number): number => {
-  const discount = batchItemDiscount.value[index]
-  const discountPrice = calculateDiscountPrice(index)
-  const priceAfterDiscount = discount ? price - discountPrice : 0
-
-  if (priceAfterDiscount !== 0) {
-    batchPriceAfterDiscount.value[index] = priceAfterDiscount
-    return priceAfterDiscount
+const calculateSubTotal = (): void => {
+  subTotalPrice.value = 0
+  for (let index = 0; index < batchTotalPriceItem.value.length; index++) {
+    subTotalPrice.value = subTotalPrice.value + batchTotalPriceItem.value[index]
   }
 
-  return priceAfterDiscount
+  totalPrice.value = subTotalPrice.value
 }
 
-const calculateTotalPriceItem = (index: number, price: number): number => {
-  const quantity = batchItemQuantities.value[index]
-  const discountPrice = calculatePriceAfterDiscount(index, price)
-  const totalPriceItem = quantity ? parseInt(quantity as string) * discountPrice : 0
-
-  if (totalPriceItem !== 0) {
-    batchTotalPriceItem.value[index] = totalPriceItem
-    return totalPriceItem
+const calculateTotalPrice = (): void => {
+  if (isNaN(shippingCost.value)) {
+    shippingCost.value = 0
   }
-
-  return totalPriceItem
-}
-
-const calculateSubTotal = (): number => {
-  subTotalPrice.value = selectedItems.value.reduce((sum, item, index) => {
-    return sum + calculateTotalPriceItem(index, item.harga)
-  }, 0)
-
-  return subTotalPrice.value
+  if (isNaN(discountTotalPrice.value)) {
+    discountTotalPrice.value = 0
+  }
+  totalPrice.value =
+    Number(subTotalPrice.value) + Number(shippingCost.value) - Number(discountTotalPrice.value)
 }
 
 const customerCode = computed(() => {
@@ -199,33 +201,7 @@ const customerCode = computed(() => {
   return form.customer
 })
 
-const calculateTotalPrice = (discount: string, shippingCost: string): number => {
-  totalPrice.value =
-    subTotalPrice.value - parseInt(discount as string) + parseInt(shippingCost as string)
-  return totalPrice.value ? totalPrice.value : 0
-}
-
-const parseBatchItemQuantitiesToInt = computed(() => {
-  return batchItemQuantities.value.map((quantity) => parseInt(quantity as string))
-})
-
-const parseBatchItemDiscountStringToInt = computed(() => {
-  return batchItemDiscount.value.map((itemDiscount) => parseInt(itemDiscount as string))
-})
-
-const send = async () => {
-  console.log(form)
-  console.log(selectedItems.value)
-  console.log(batchItemQuantities.value)
-  console.log(batchItemDiscount.value)
-  console.log(batchDiscountPrice.value)
-  console.log(batchTotalPriceItem.value)
-  console.log(batchPriceAfterDiscount.value)
-  console.log(discountTotalPrice.value)
-  console.log(shippingCost.value)
-  console.log(subTotalPrice.value)
-  console.log(totalPrice.value)
-
+const send = async (): Promise<void> => {
   try {
     isLoading.value = true
     const result: AxiosResponse<TransactionFetch> = await api.post('transaction', {
@@ -234,11 +210,11 @@ const send = async () => {
       date: form.date,
       customer_code: customerCode.value,
       subtotal: subTotalPrice.value,
-      discount: parseInt(discountTotalPrice.value),
-      shipping_cost: parseInt(shippingCost.value),
+      discount: discountTotalPrice.value ? Number(discountTotalPrice.value) : 0,
+      shipping_cost: shippingCost.value ? Number(shippingCost.value) : 0,
       total_price: totalPrice.value,
-      qty: parseBatchItemQuantitiesToInt.value,
-      discount_pct: parseBatchItemDiscountStringToInt.value,
+      qty: batchItemQuantities.value,
+      discount_pct: batchItemDiscount.value,
       discount_nominal: batchDiscountPrice.value,
       discount_price: batchPriceAfterDiscount.value,
       total: batchTotalPriceItem.value,
@@ -450,6 +426,7 @@ const send = async () => {
                         </td>
                         <td class="border-t items-center px-6 py-4">
                           <TextInput
+                            @input="calculateTotalPriceItemByQty(index)"
                             :required="true"
                             class="w-20"
                             type="number"
@@ -461,6 +438,7 @@ const send = async () => {
                         </td>
                         <td class="border-t items-center px-6 py-4">
                           <TextInput
+                            @input="calculateDiscountPriceByDiscountPct(index)"
                             :required="true"
                             type="number"
                             class="w-full"
@@ -468,21 +446,13 @@ const send = async () => {
                           />
                         </td>
                         <td class="border-t items-center px-6 py-4">
-                          {{ NumberUtil.formatRupiah(calculateDiscountPrice(index)) }}
+                          {{ NumberUtil.formatRupiah(batchDiscountPrice[index]) }}
                         </td>
                         <td class="border-t items-center px-6 py-4">
-                          {{
-                            NumberUtil.formatRupiah(
-                              calculatePriceAfterDiscount(index, selectedItem.harga),
-                            )
-                          }}
+                          {{ NumberUtil.formatRupiah(batchPriceAfterDiscount[index]) }}
                         </td>
                         <td class="border-t items-center px-6 py-4">
-                          {{
-                            NumberUtil.formatRupiah(
-                              calculateTotalPriceItem(index, selectedItem.harga),
-                            )
-                          }}
+                          {{ NumberUtil.formatRupiah(batchTotalPriceItem[index]) }}
                         </td>
                         <td class="border-t items-center px-6 py-4 flex justify-start space-x-4">
                           <div>
@@ -510,14 +480,18 @@ const send = async () => {
                       <tr class="text-left">
                         <th>Sub total</th>
                         <th>:</th>
-                        <th>{{ NumberUtil.formatRupiah(calculateSubTotal()) }}</th>
+                        <th>{{ NumberUtil.formatRupiah(subTotalPrice) }}</th>
                       </tr>
                       <tr class="text-left">
                         <th>Diskon</th>
                         <th>:</th>
                         <th>
                           <div>
-                            <TextInput type="number" v-model="discountTotalPrice" />
+                            <TextInput
+                              @input="calculateTotalPrice"
+                              type="number"
+                              v-model="discountTotalPrice"
+                            />
                             <InputError
                               v-if="
                                 validation &&
@@ -534,7 +508,11 @@ const send = async () => {
                         <th>:</th>
                         <th>
                           <div>
-                            <TextInput type="number" v-model="shippingCost" />
+                            <TextInput
+                              @input="calculateTotalPrice"
+                              type="number"
+                              v-model="shippingCost"
+                            />
                             <InputError
                               v-if="
                                 validation &&
@@ -550,11 +528,7 @@ const send = async () => {
                         <th>Total bayar</th>
                         <th>:</th>
                         <th>
-                          {{
-                            NumberUtil.formatRupiah(
-                              calculateTotalPrice(discountTotalPrice, shippingCost),
-                            )
-                          }}
+                          {{ NumberUtil.formatRupiah(totalPrice) }}
                         </th>
                       </tr>
                     </tbody>
