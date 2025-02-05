@@ -4,7 +4,7 @@ import 'nprogress/nprogress.css'
 import router from '@/router'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: 'https://transaction-app.bebs.cloud/api',
   withCredentials: true,
 })
 
