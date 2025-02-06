@@ -4,6 +4,8 @@ import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import InputLabel from '@/components/base/InputLabel.vue'
 import InputError from '@/components/base/InputError.vue'
 import TextInput from '@/components/base/TextInput.vue'
+import AlertForm from '@/components/base/AlertForm.vue'
+import PointerRequired from '@/components/base/PointerRequired.vue'
 import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { CustomerForm, FetchCustomer, FetchCustomerCode } from '@/interface/CustomerInterface'
 import type { Validation } from '@/interface/GlobalInterface'
@@ -73,11 +75,19 @@ const formatPhoneNumber = (event: Event): void => {
 </script>
 <template>
   <DashboardLayout>
+    <template #header>
+      <div class="flex justify-between">
+        <div>
+          <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Pelanggan</h2>
+        </div>
+      </div>
+    </template>
+    <AlertForm />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
         <form @submit.prevent="send" class="space-y-4">
           <div>
-            <InputLabel>kode</InputLabel>
+            <InputLabel>kode <PointerRequired /></InputLabel>
             <TextInput :disabled="true" type="text" class="block mt-1 w-full" v-model="form.code" />
             <InputError
               v-if="validation && validation.status === 400 && validation.data.errors.code"
@@ -85,7 +95,7 @@ const formatPhoneNumber = (event: Event): void => {
             />
           </div>
           <div>
-            <InputLabel>nama</InputLabel>
+            <InputLabel>nama <PointerRequired /></InputLabel>
             <TextInput type="text" class="block mt-1 w-full" v-model="form.name" />
             <InputError
               v-if="validation && validation.status === 400 && validation.data.errors.name"
@@ -93,7 +103,7 @@ const formatPhoneNumber = (event: Event): void => {
             />
           </div>
           <div>
-            <InputLabel>nomor telpon</InputLabel>
+            <InputLabel>nomor telpon <PointerRequired /></InputLabel>
             <TextInput
               type="text"
               maxlength="14"
