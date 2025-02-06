@@ -3,6 +3,8 @@ import DashboardLayout from '@/layout/DashboardLayout.vue'
 import InputLabel from '@/components/base/InputLabel.vue'
 import InputError from '@/components/base/InputError.vue'
 import PrimaryButton from '@/components/base/PrimaryButton.vue'
+import AlertForm from '@/components/base/AlertForm.vue'
+import PointerRequired from '@/components/base/PointerRequired.vue'
 import TextInput from '@/components/base/TextInput.vue'
 import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { ItemFetch, ItemForm } from '@/interface/ItemInterface'
@@ -76,11 +78,12 @@ const send = async (): Promise<void> => {
         </div>
       </div>
     </template>
+    <AlertForm />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
         <form @submit.prevent="send" class="space-y-4">
           <div>
-            <InputLabel>kode</InputLabel>
+            <InputLabel>kode <PointerRequired /></InputLabel>
             <TextInput :disabled="true" type="text" class="block mt-1 w-full" v-model="form.code" />
             <InputError
               v-if="validation && validation.status === 400 && validation.data.errors.code"
@@ -88,7 +91,7 @@ const send = async (): Promise<void> => {
             />
           </div>
           <div>
-            <InputLabel>nama</InputLabel>
+            <InputLabel>nama <PointerRequired /></InputLabel>
             <TextInput type="text" class="block mt-1 w-full" v-model="form.name" />
             <InputError
               v-if="validation && validation.status === 400 && validation.data.errors.name"
@@ -96,7 +99,7 @@ const send = async (): Promise<void> => {
             />
           </div>
           <div>
-            <InputLabel>harga</InputLabel>
+            <InputLabel>harga <PointerRequired /></InputLabel>
             <TextInput type="number" class="block mt-1 w-full" v-model="form.price" />
             <InputError
               v-if="validation && validation.status === 400 && validation.data.errors.price"

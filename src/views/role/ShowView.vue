@@ -4,6 +4,8 @@ import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import InputLabel from '@/components/base/InputLabel.vue'
 import TextInput from '@/components/base/TextInput.vue'
 import InputError from '@/components/base/InputError.vue'
+import AlertForm from '@/components/base/AlertForm.vue'
+import PointerRequired from '@/components/base/PointerRequired.vue'
 import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { FetchRole, Role, RoleForm } from '@/interface/RoleInterface'
 import type { Validation } from '@/interface/GlobalInterface'
@@ -75,11 +77,12 @@ const send = async (): Promise<void> => {
       </div>
     </template>
 
+    <AlertForm />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
         <form @submit.prevent="send" class="space-y-4">
           <div>
-            <InputLabel>nama</InputLabel>
+            <InputLabel>nama <PointerRequired /></InputLabel>
             <TextInput type="text" class="block mt-1 w-full" v-model="form.name" />
             <InputError
               v-if="validation && validation.status === 400 && validation.data.errors.name"

@@ -4,6 +4,8 @@ import PrimaryButton from '@/components/base/PrimaryButton.vue'
 import InputLabel from '@/components/base/InputLabel.vue'
 import TextInput from '@/components/base/TextInput.vue'
 import InputError from '@/components/base/InputError.vue'
+import AlertForm from '@/components/base/AlertForm.vue'
+import PointerRequired from '@/components/base/PointerRequired.vue'
 import Multiselect from 'vue-multiselect'
 import { onMounted, reactive, ref, type Ref } from 'vue'
 import type { AxiosError, AxiosResponse } from 'axios'
@@ -130,11 +132,13 @@ const send = async () => {
       </div>
     </template>
 
+    <AlertForm />
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="bg-white mt-10 px-4 py-6 rounded shadow-md overflow-x-auto">
         <form @submit.prevent="send" class="space-y-4">
           <div>
-            <InputLabel>nama</InputLabel>
+            <InputLabel>nama <PointerRequired /></InputLabel>
             <TextInput type="text" class="block mt-1 w-full" v-model="form.name" />
             <InputError
               v-if="validation && validation.status === 400 && validation.data.errors.name"
@@ -142,7 +146,7 @@ const send = async () => {
             />
           </div>
           <div>
-            <InputLabel>email</InputLabel>
+            <InputLabel>email <PointerRequired /></InputLabel>
             <TextInput type="email" class="block mt-1 w-full" v-model="form.email" />
             <InputError
               v-if="validation && validation.status === 400 && validation.data.errors.email"
@@ -150,7 +154,7 @@ const send = async () => {
             />
           </div>
           <div>
-            <InputLabel>role</InputLabel>
+            <InputLabel>role <PointerRequired /></InputLabel>
             <Multiselect
               :close-on-select="true"
               :clear-on-select="true"
